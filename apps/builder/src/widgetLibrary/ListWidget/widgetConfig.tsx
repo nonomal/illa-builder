@@ -16,7 +16,7 @@ export const LIST_WIDGET_CONFIG: WidgetConfig = {
   icon: <ListWidgetIcon />,
   sessionType: "PRESENTATION",
   w: 32,
-  h: 40,
+  h: 38,
   childrenNode: [
     {
       ...BasicContainerConfig,
@@ -25,8 +25,8 @@ export const LIST_WIDGET_CONFIG: WidgetConfig = {
           ...TEXT_WIDGET_CONFIG,
           w: 10,
           h: 5,
-          x: 19,
-          y: 2,
+          x: 22,
+          y: 3,
           defaults: {
             ...TEXT_WIDGET_CONFIG.defaults,
             value:
@@ -38,8 +38,8 @@ export const LIST_WIDGET_CONFIG: WidgetConfig = {
           ...TEXT_WIDGET_CONFIG,
           w: 30,
           h: 5,
-          x: 19,
-          y: 13,
+          x: 22,
+          y: 8,
           defaults: {
             ...TEXT_WIDGET_CONFIG.defaults,
             value:
@@ -49,23 +49,24 @@ export const LIST_WIDGET_CONFIG: WidgetConfig = {
         },
         {
           ...IMAGE_WIDGET_CONFIG,
-          w: 14,
-          h: 20,
-          x: 1,
+          w: 16,
+          h: 15,
+          x: 3,
           y: 1,
           defaults: {
             ...IMAGE_WIDGET_CONFIG.defaults,
             imageSrc:
               "{{templateDisplayName.dataSources.map((currentItem) => (currentItem.img))}}",
             $dynamicAttrPaths: ["imageSrc"],
+            radius: "8px",
           },
         },
         {
           ...BUTTON_WIDGET_CONFIG,
-          w: 16,
+          w: 17,
           h: 5,
           x: 47,
-          y: 6,
+          y: 5,
           defaults: {
             ...BUTTON_WIDGET_CONFIG.defaults,
             text: "Show notification",
@@ -92,7 +93,13 @@ export const LIST_WIDGET_CONFIG: WidgetConfig = {
     pageSize: "{{6}}",
     itemBackGroundColor: "white",
     backgroundColor: "white",
-    itemHeight: 203,
+    itemHeight: 146,
+    selectedIndex: 0,
+    selectedItem: {
+      name: "user1",
+      email: "user1@illasoft.com",
+      img: "https://images.unsplash.com/photo-1614853316476-de00d14cb1fc?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2370&q=80",
+    },
     dataSources: `{{[
   {
     "name": "user1",
