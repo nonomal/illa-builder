@@ -5,6 +5,7 @@ import {
 } from "@/page/App/components/ScaleSquare/interface"
 import { globalColor, illaPrefix, getColor } from "@illa-design/react"
 
+
 export type BarPosition = "l" | "r" | "t" | "b" | "tl" | "tr" | "bl" | "br"
 
 export const MOVE_BAR_HEIGHT = 18
