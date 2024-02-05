@@ -1,6 +1,6 @@
-import { ReactComponent as TimelineWidgetIcon } from "@/assets/widgetCover/timeline.svg"
+import TimelineWidgetIcon from "@/assets/widgetCover/timeline.svg?react"
 import i18n from "@/i18n/config"
-import { WidgetConfig } from "@/widgetLibrary/interface"
+import { RESIZE_DIRECTION, WidgetConfig } from "@/widgetLibrary/interface"
 
 export const TIMELINE_WIDGET_CONFIG: WidgetConfig = {
   type: "TIMELINE_WIDGET",
@@ -9,13 +9,14 @@ export const TIMELINE_WIDGET_CONFIG: WidgetConfig = {
   icon: <TimelineWidgetIcon />,
   keywords: ["Timeline", "时间线"],
   sessionType: "PRESENTATION",
-  w: 12,
+  w: 6,
   h: 28,
+  version: 0,
   defaults: {
     direction: "vertical",
     items: `{{["The first milestone","The second milestone","The third milestone"]}}`,
-    width: "200px",
-    height: "20px",
     hidden: false,
+    dynamicHeight: "fixed",
+    resizeDirection: RESIZE_DIRECTION.ALL,
   },
 }

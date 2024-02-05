@@ -1,9 +1,31 @@
-import { FC, useMemo } from "react"
+import {
+  MongoDbAggregateContentInitial,
+  MongoDbBulkWriteContentInitial,
+  MongoDbCommandContentInitial,
+  MongoDbCountContentInitial,
+  MongoDbDeleteManyContentInitial,
+  MongoDbDeleteOneContentInitial,
+  MongoDbDistinctContentInitial,
+  MongoDbFindContentInitial,
+  MongoDbFindOneAndUpdateContentInitial,
+  MongoDbFindOneContentInitial,
+  MongoDbInsertManyContentInitial,
+  MongoDbInsertOneContentInitial,
+  MongoDbListCollectionsContentInitial,
+  MongoDbUpdateManyContentInitial,
+  MongoDbUpdateOneContentInitial,
+} from "@illa-public/public-configs"
+import {
+  ActionItem,
+  MongoDbAction,
+  MongoDbActionType,
+  MongoDbActionTypeContent,
+} from "@illa-public/public-types"
+import { FC, useCallback, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { useDispatch, useSelector } from "react-redux"
-import { Select } from "@illa-design/react"
-import { CodeEditor } from "@/components/CodeEditor"
-import { ActionEventHandler } from "@/page/App/components/Actions/ActionPanel/ActionEventHandler"
+import { SelectValue } from "@illa-design/react"
+import { CODE_LANG } from "@/components/CodeEditor/CodeMirror/extensions/interface"
 import { AggregatePart } from "@/page/App/components/Actions/ActionPanel/MongoDbPanel/AggregatePart"
 import { BulkWritePart } from "@/page/App/components/Actions/ActionPanel/MongoDbPanel/BulkWritePart"
 import { CommandPart } from "@/page/App/components/Actions/ActionPanel/MongoDbPanel/Command"
@@ -19,50 +41,25 @@ import { InsertOnePart } from "@/page/App/components/Actions/ActionPanel/MongoDb
 import { UpdateManyPart } from "@/page/App/components/Actions/ActionPanel/MongoDbPanel/UpdateManyPart"
 import { UpdateOnePart } from "@/page/App/components/Actions/ActionPanel/MongoDbPanel/UpdateOnePart"
 import { ListCollectionsPart } from "@/page/App/components/Actions/ActionPanel/MongoDbPanel/listCollectionsPart"
-import {
-  mongoContainerStyle,
-  mongoItemCodeEditorStyle,
-  mongoItemLabelStyle,
-  mongoItemStyle,
-} from "@/page/App/components/Actions/ActionPanel/MongoDbPanel/style"
-import { ResourceChoose } from "@/page/App/components/Actions/ActionPanel/ResourceChoose"
+import { actionItemContainer } from "@/page/App/components/Actions/ActionPanel/MongoDbPanel/style"
+import { SingleTypeComponent } from "@/page/App/components/Actions/ActionPanel/SingleTypeComponent"
 import { TransformerComponent } from "@/page/App/components/Actions/ActionPanel/TransformerComponent"
+import { InputEditor } from "@/page/App/components/Actions/InputEditor"
 import {
   getCachedAction,
   getSelectedAction,
 } from "@/redux/config/configSelector"
 import { configActions } from "@/redux/config/configSlice"
-import { ActionItem } from "@/redux/currentApp/action/actionState"
-import {
-  AggregateContentInitial,
-  BulkWriteContentInitial,
-  CommandContentInitial,
-  CountContentInitial,
-  DeleteManyContentInitial,
-  DeleteOneContentInitial,
-  DistinctContentInitial,
-  FindContentInitial,
-  FindOneAndUpdateContentInitial,
-  FindOneContentInitial,
-  InsertManyContentInitial,
-  InsertOneContentInitial,
-  ListCollectionsContentInitial,
-  MongoDbAction,
-  MongoDbActionList,
-  MongoDbActionTypeContent,
-  UpdateManyContentInitial,
-  UpdateOneContentInitial,
-} from "@/redux/currentApp/action/mongoDbAction"
 import { VALIDATION_TYPES } from "@/utils/validationFactory"
+import { MongoDbActionList } from "./constants"
 
-export const MongoDbPanel: FC = () => {
+const MongoDbPanel: FC = () => {
   const { t } = useTranslation()
 
   const cachedAction = useSelector(getCachedAction) as ActionItem<
     MongoDbAction<MongoDbActionTypeContent>
   >
   const selectedAction = useSelector(getSelectedAction)
-
   const dispatch = useDispatch()
 
   let content = cachedAction.content as MongoDbAction<MongoDbActionTypeContent>
@@ -104,124 +101,122 @@ export const MongoDbPanel: FC = () => {
     }
   }, [content.actionType, content.typeContent])
 
+  const handleActionTypeChange = useCallback(
+    (value: SelectValue) => {
+      let newTypeContent: MongoDbActionTypeContent =
+        MongoDbAggregateContentInitial
+      if (
+        selectedAction &&
+        cachedAction.resourceID === selectedAction.resourceID &&
+        (selectedAction.content as MongoDbAction<MongoDbActionTypeContent>)
+          .actionType === value
+      ) {
+        newTypeContent = (
+          selectedAction.content as MongoDbAction<MongoDbActionTypeContent>
+        )?.typeContent
+      } else {
+        switch (value) {
+          case "aggregate":
+            newTypeContent = MongoDbAggregateContentInitial
+            break
+          case "bulkWrite":
+            newTypeContent = MongoDbBulkWriteContentInitial
+            break
+          case "count":
+            newTypeContent = MongoDbCountContentInitial
+            break
+          case "deleteMany":
+            newTypeContent = MongoDbDeleteManyContentInitial
+            break
+          case "deleteOne":
+            newTypeContent = MongoDbDeleteOneContentInitial
+            break
+          case "distinct":
+            newTypeContent = MongoDbDistinctContentInitial
+            break
+          case "find":
+            newTypeContent = MongoDbFindContentInitial
+            break
+          case "findOne":
+            newTypeContent = MongoDbFindOneContentInitial
+            break
+          case "findOneAndUpdate":
+            newTypeContent = MongoDbFindOneAndUpdateContentInitial
+            break
+          case "insertOne":
+            newTypeContent = MongoDbInsertOneContentInitial
+            break
+          case "insertMany":
+            newTypeContent = MongoDbInsertManyContentInitial
+            break
+          case "listCollections":
+            newTypeContent = MongoDbListCollectionsContentInitial
+            break
+          case "updateMany":
+            newTypeContent = MongoDbUpdateManyContentInitial
+            break
+          case "updateOne":
+            newTypeContent = MongoDbUpdateOneContentInitial
+            break
+          case "command":
+            newTypeContent = MongoDbCommandContentInitial
+            break
+        }
+      }
+      dispatch(
+        configActions.updateCachedAction({
+          ...cachedAction,
+          content: {
+            ...cachedAction.content,
+            actionType: value as MongoDbActionType,
+            typeContent: newTypeContent,
+          },
+        }),
+      )
+    },
+    [cachedAction, dispatch, selectedAction],
+  )
+
+  const handleCollectionChange = useCallback(
+    (value: string) => {
+      dispatch(
+        configActions.updateCachedAction({
+          ...cachedAction,
+          content: {
+            ...cachedAction.content,
+            collection: value,
+          },
+        }),
+      )
+    },
+    [cachedAction, dispatch],
+  )
+
   return (
-    <div css={mongoContainerStyle}>
-      <ResourceChoose />
-      <div css={mongoItemStyle}>
-        <span css={mongoItemLabelStyle}>
-          {t("editor.action.panel.mongodb.action_type")}
-        </span>
-        <Select
-          colorScheme="techPurple"
-          showSearch={true}
-          defaultValue={content.actionType}
-          value={content.actionType}
-          ml="16px"
-          width="100%"
-          onChange={(value) => {
-            let newTypeContent: MongoDbActionTypeContent =
-              AggregateContentInitial
-            if (
-              cachedAction.resourceId === selectedAction.resourceId &&
-              (
-                selectedAction.content as MongoDbAction<MongoDbActionTypeContent>
-              ).actionType === value
-            ) {
-              newTypeContent = (
-                selectedAction.content as MongoDbAction<MongoDbActionTypeContent>
-              ).typeContent
-            } else {
-              switch (value) {
-                case "aggregate":
-                  newTypeContent = AggregateContentInitial
-                  break
-                case "bulkWrite":
-                  newTypeContent = BulkWriteContentInitial
-                  break
-                case "count":
-                  newTypeContent = CountContentInitial
-                  break
-                case "deleteMany":
-                  newTypeContent = DeleteManyContentInitial
-                  break
-                case "deleteOne":
-                  newTypeContent = DeleteOneContentInitial
-                  break
-                case "distinct":
-                  newTypeContent = DistinctContentInitial
-                  break
-                case "find":
-                  newTypeContent = FindContentInitial
-                  break
-                case "findOne":
-                  newTypeContent = FindOneContentInitial
-                  break
-                case "findOneAndUpdate":
-                  newTypeContent = FindOneAndUpdateContentInitial
-                  break
-                case "insertOne":
-                  newTypeContent = InsertOneContentInitial
-                  break
-                case "insertMany":
-                  newTypeContent = InsertManyContentInitial
-                  break
-                case "listCollections":
-                  newTypeContent = ListCollectionsContentInitial
-                  break
-                case "updateMany":
-                  newTypeContent = UpdateManyContentInitial
-                  break
-                case "updateOne":
-                  newTypeContent = UpdateOneContentInitial
-                  break
-                case "command":
-                  newTypeContent = CommandContentInitial
-                  break
-              }
-            }
-            dispatch(
-              configActions.updateCachedAction({
-                ...cachedAction,
-                content: {
-                  ...cachedAction.content,
-                  actionType: value,
-                  typeContent: newTypeContent,
-                },
-              }),
-            )
-          }}
-          options={MongoDbActionList}
-        />
-      </div>
-      {cachedAction.content.actionType !== "command" && (
-        <div css={mongoItemStyle}>
-          <span css={mongoItemLabelStyle}>
-            {t("editor.action.panel.mongodb.collection")}
-          </span>
-          <CodeEditor
-            css={mongoItemCodeEditorStyle}
-            mode="TEXT_JS"
+    <div css={actionItemContainer}>
+      <SingleTypeComponent
+        componentType="select"
+        showSearch={true}
+        value={content.actionType}
+        onSelectedValueChange={handleActionTypeChange}
+        options={MongoDbActionList}
+        title={t("editor.action.panel.mongodb.action_type")}
+      />
+      {cachedAction.content.actionType !== "command" &&
+        cachedAction.content.actionType !== "listCollections" && (
+          <InputEditor
             value={content.collection}
-            onChange={(value) => {
-              dispatch(
-                configActions.updateCachedAction({
-                  ...cachedAction,
-                  content: {
-                    ...cachedAction.content,
-                    collection: value,
-                  },
-                }),
-              )
-            }}
+            title={t("editor.action.panel.mongodb.collection")}
+            onChange={handleCollectionChange}
+            mode={CODE_LANG.JAVASCRIPT}
             expectedType={VALIDATION_TYPES.STRING}
           />
-        </div>
-      )}
+        )}
       {renderInputBody}
       <TransformerComponent />
-      <ActionEventHandler />
     </div>
   )
 }
 
 MongoDbPanel.displayName = "MongoDbPanel"
+export default MongoDbPanel

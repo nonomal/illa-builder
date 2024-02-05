@@ -1,5 +1,6 @@
-import { css } from "@emotion/react"
-import { SerializedStyles } from "@emotion/serialize"
+import { SerializedStyles, css } from "@emotion/react"
+import { getSpecialThemeColor } from "@illa-design/react"
+import { getShadowStyle } from "@/utils/styleUtils/shadow"
 
 export const applyValidateMessageWrapperStyle = (
   labelWidth: number,
@@ -45,21 +46,21 @@ export const applyCenterLabelAndComponentWrapperStyle = (
   `
 }
 
-const getShadowStyle = (shadow?: "none" | "small" | "medium" | "large") => {
-  switch (shadow) {
-    case "small": {
-      return "0px 2px 8px rgba(0, 0, 0, 0.08);"
-    }
-    case "medium": {
-      return "0px 4px 16px rgba(0, 0, 0, 0.08);"
-    }
-    case "large": {
-      return "0px 8px 20px rgba(0, 0, 0, 0.12);"
-    }
-    case "none":
-    default:
-      return "unset"
+const getWrapperBackgroundColor = (
+  widgetType?: string,
+  backgroundColor?: string,
+) => {
+  if (
+    widgetType === "CONTAINER_WIDGET" ||
+    widgetType === "LIST_WIDGET" ||
+    widgetType === "MODAL_WIDGET" ||
+    widgetType === "FORM_WIDGET"
+  ) {
+    return backgroundColor
+      ? getSpecialThemeColor(backgroundColor) || backgroundColor
+      : "white"
   }
+  return "transparent"
 }
 
 export const applyWrapperStylesStyle = (
@@ -67,24 +68,24 @@ export const applyWrapperStylesStyle = (
   borderWidth?: string,
   radius?: string,
   backgroundColor?: string,
-  shadow?: "none" | "small" | "medium" | "large",
+  shadowSize?: "none" | "small" | "medium" | "large",
   widgetType?: string,
 ) => {
   let borderStyle = "unset"
   if (borderColor && borderWidth) {
-    borderStyle = `${borderWidth} solid ${borderColor}`
+    borderStyle = `${borderWidth} solid ${
+      borderColor
+        ? getSpecialThemeColor(borderColor) || borderColor
+        : "transparent"
+    }`
   }
-  const shadowStyle = getShadowStyle(shadow)
-
+  const shadowStyle = getShadowStyle(shadowSize)
   return css`
     width: 100%;
     height: 100%;
     border: ${borderStyle};
     border-radius: ${radius};
-    background-color: ${widgetType === "CONTAINER_WIDGET" ||
-    widgetType === "LIST_WIDGET"
-      ? backgroundColor || "white"
-      : "transparent"};
+    background-color: ${getWrapperBackgroundColor(widgetType, backgroundColor)};
     box-shadow: ${shadowStyle};
     overflow-x: hidden;
   `

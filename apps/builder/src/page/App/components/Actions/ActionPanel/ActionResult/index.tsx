@@ -1,90 +1,134 @@
-import { FC, RefObject, useRef, useState } from "react"
+import { FC, useCallback, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import {
-  CloseIcon,
-  SuccessCircleIcon,
-  WarningCircleIcon,
-} from "@illa-design/react"
-import { ApiError } from "@/api/base"
+import { useSelector } from "react-redux"
 import { CodeEditor } from "@/components/CodeEditor"
-import { DragBar } from "@/page/App/components/Actions/DragBar"
-import { VALIDATION_TYPES } from "@/utils/validationFactory"
-import { ActionResultType } from "./interface"
+import { CODE_LANG } from "@/components/CodeEditor/CodeMirror/extensions/interface"
+import { ActionResultProps } from "@/page/App/components/Actions/ActionPanel/ActionResult/interface"
 import {
-  applyMaxHeightStyle,
-  codeStyle,
-  errorIconStyle,
-  errorResultWrapperStyle,
-  resCloseIconStyle,
-  resultContainerStyle,
-  resultSuccessLeftContainer,
-  successIconStyle,
-  successResultWrapperStyle,
-} from "./style"
-
-interface ActionResultProps {
-  result?: ActionResultType
-  maxHeight?: number
-  placeholderRef?: RefObject<HTMLDivElement>
-  onClose: () => void
-}
+  actionResultContainerStyle,
+  applyActionContentContainerStyle,
+  customerCodeStyle,
+} from "@/page/App/components/Actions/ActionPanel/ActionResult/style"
+import { DragBar } from "@/page/App/components/Actions/DragBar"
+import { getSelectedAction } from "@/redux/config/configSelector"
+import { getExecutionResult } from "@/redux/currentApp/executionTree/executionSelector"
+import { RootState } from "@/store"
+import { AdvancedResultHeader, RESULT_SHOW_TYPE } from "./restApiHeader"
+import { getDisplayResult } from "./utils"
 
 export const ActionResult: FC<ActionResultProps> = (props) => {
-  const { result, maxHeight, placeholderRef, onClose } = props
-  const res = result?.result
-  const panelRef = useRef<HTMLDivElement>(null)
-  const { t } = useTranslation()
-  const [dragMaxHeight, setDragMaxHeight] = useState<number>()
+  const { onClose, visible } = props
 
-  return res ? (
-    <div
-      css={[resultContainerStyle, applyMaxHeightStyle(maxHeight)]}
-      ref={panelRef}
-    >
-      {result?.error ? (
-        <div css={errorResultWrapperStyle}>
-          <WarningCircleIcon css={errorIconStyle} fs="16px" />
-          <span>{(res as ApiError)?.errorMessage?.toString()}</span>
-        </div>
-      ) : (
-        <>
-          <DragBar
-            resizeRef={panelRef}
-            placeholderRef={placeholderRef}
-            minHeight={40}
-            maxHeight={dragMaxHeight}
-          />
-          <div css={successResultWrapperStyle}>
-            <div css={resultSuccessLeftContainer}>
-              <SuccessCircleIcon css={successIconStyle} fs="16px" />
-              <span>{t("editor.action.result.title.success")}</span>
-            </div>
-            <CloseIcon css={resCloseIconStyle} onClick={onClose} />
-          </div>
-          <CodeEditor
-            css={codeStyle}
-            ref={(ele) => {
-              if (ele?.scrollHeight) {
-                setDragMaxHeight(ele?.scrollHeight + 40)
-              }
-              if (placeholderRef?.current && ele?.clientHeight) {
-                placeholderRef.current.style.paddingBottom = `${
-                  ele?.clientHeight + 48
-                }px`
-              }
-            }}
-            mode={"JSON"}
-            expectedType={VALIDATION_TYPES.STRING}
-            value={JSON.stringify(res, null, 2)}
-            border={"unset"}
-            borderRadius={"0"}
-            readOnly
-            lineNumbers
-          />
-        </>
-      )}
+  const resizeRef = useRef<HTMLDivElement>(null)
+
+  const alertRef = useRef<HTMLDivElement>(null)
+
+  const [showType, setShowType] = useState<RESULT_SHOW_TYPE>(
+    RESULT_SHOW_TYPE.RESPONSE,
+  )
+
+  const selectedAction = useSelector(getSelectedAction)! ?? {}
+
+  const currentActionExecutionResult = useSelector<
+    RootState,
+    Record<string, any> | undefined
+  >((rootState) => {
+    const executionResult = getExecutionResult(rootState)
+    if (selectedAction.displayName) {
+      return executionResult[selectedAction.displayName]
+    }
+  })
+
+  const { t } = useTranslation()
+
+  const renderResult =
+    visible &&
+    (currentActionExecutionResult?.data !== undefined ||
+      currentActionExecutionResult?.runResult !== undefined)
+
+  const isError = currentActionExecutionResult?.runResult?.error
+  const result = currentActionExecutionResult?.data
+  const rawResult = currentActionExecutionResult?.rawData
+  const responseHeader = currentActionExecutionResult?.responseHeaders
+
+  const runningTimes =
+    (currentActionExecutionResult?.endTime ?? 0) -
+    (currentActionExecutionResult?.startTime ?? 0)
+
+  const [codeMirrorHeight, setCodeMirrorHeight] = useState(260)
+
+  const handleResultTabsClick = useCallback((activeKey: RESULT_SHOW_TYPE) => {
+    return () => {
+      setShowType(activeKey)
+    }
+  }, [])
+
+  const finalResult = {
+    result,
+    rawResult,
+    responseHeader,
+  }
+
+  const advancedApiResultTabs = [
+    {
+      title: t("editor.action.panel.result.restapi.response"),
+      name: RESULT_SHOW_TYPE.RESPONSE,
+      shown: !!result,
+    },
+    {
+      title: t("editor.action.panel.result.restapi.rawdata"),
+      name: RESULT_SHOW_TYPE.RAW_DATA,
+      shown: !!rawResult,
+    },
+    {
+      title: t("editor.action.panel.result.restapi.headers"),
+      name: RESULT_SHOW_TYPE.HEADERS,
+      shown: !!responseHeader,
+    },
+  ]
+
+  const displayData = getDisplayResult(showType, finalResult)
+
+  return (
+    <div css={actionResultContainerStyle}>
+      <div css={applyActionContentContainerStyle(renderResult)} ref={resizeRef}>
+        <DragBar
+          minHeight={300}
+          resizeRef={resizeRef}
+          onChange={() => {
+            setCodeMirrorHeight(
+              resizeRef.current!.offsetHeight - alertRef.current!.offsetHeight,
+            )
+          }}
+        />
+
+        <AdvancedResultHeader
+          showType={showType}
+          runningTimes={runningTimes}
+          onClose={onClose}
+          handleResultTabsClick={handleResultTabsClick}
+          ref={alertRef}
+          statusCode={responseHeader?.statusCode}
+          statusText={responseHeader?.statusText}
+          tabsConfig={advancedApiResultTabs}
+          isError={isError}
+        />
+
+        <CodeEditor
+          height={codeMirrorHeight + "px"}
+          wrapperCss={customerCodeStyle}
+          showLineNumbers
+          editable={false}
+          value={
+            isError
+              ? currentActionExecutionResult?.runResult?.message
+              : JSON.stringify(displayData, undefined, 2)
+          }
+          lang={CODE_LANG.JSON}
+        />
+      </div>
     </div>
-  ) : null
+  )
 }
 
 ActionResult.displayName = "ActionResult"

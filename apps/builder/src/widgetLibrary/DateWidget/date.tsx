@@ -1,8 +1,12 @@
-import dayjs from "dayjs"
-import { FC, useCallback, useEffect, useRef } from "react"
-import { DatePicker } from "@illa-design/react"
+import dayjs, { Dayjs } from "dayjs"
+import { FC, useCallback, useEffect } from "react"
+import { SingleDatePicker } from "@illa-design/react"
+import { AutoHeightContainer } from "@/widgetLibrary/PublicSector/AutoHeightContainer"
 import { InvalidMessage } from "@/widgetLibrary/PublicSector/InvalidMessage"
-import { handleValidateCheck } from "@/widgetLibrary/PublicSector/InvalidMessage/utils"
+import {
+  getValidateVFromString,
+  handleValidateCheck,
+} from "@/widgetLibrary/PublicSector/InvalidMessage/utils"
 import { Label } from "@/widgetLibrary/PublicSector/Label"
 import { TooltipWrapper } from "@/widgetLibrary/PublicSector/TooltipWrapper"
 import {
@@ -20,12 +24,12 @@ export const WrappedDate: FC<WrappedDateProps> = (props) => {
     minDate,
     disabled,
     maxDate,
-    readOnly,
     colorScheme,
     getValidateMessage,
     handleUpdateMultiExecutionResult,
     handleOnChange,
     displayName,
+    readOnly,
   } = props
 
   const changeValue = (value?: unknown) => {
@@ -47,7 +51,7 @@ export const WrappedDate: FC<WrappedDateProps> = (props) => {
   }
 
   const checkRange = useCallback(
-    (current) => {
+    (current?: Dayjs) => {
       const beforeMinDate = minDate
         ? !!current?.isBefore(dayjs(minDate))
         : false
@@ -58,12 +62,12 @@ export const WrappedDate: FC<WrappedDateProps> = (props) => {
   )
 
   return (
-    <DatePicker
+    <SingleDatePicker
       w="100%"
+      editable={!readOnly}
       colorScheme={colorScheme}
       format={dateFormat}
       value={value}
-      readOnly={readOnly}
       disabled={disabled}
       placeholder={placeholder}
       allowClear={showClear}
@@ -81,18 +85,9 @@ WrappedDate.displayName = "WrappedDate"
 export const DateWidget: FC<DateWidgetProps> = (props) => {
   const {
     value,
-    dateFormat,
-    placeholder,
-    showClear,
-    minDate,
-    disabled,
-    maxDate,
-    readOnly,
-    colorScheme,
     handleUpdateDsl,
-    displayName,
-    handleUpdateGlobalData,
-    handleDeleteGlobalData,
+    updateComponentRuntimeProps,
+    deleteComponentRuntimeProps,
     labelPosition,
     labelFull,
     label,
@@ -109,13 +104,14 @@ export const DateWidget: FC<DateWidgetProps> = (props) => {
     hideValidationMessage,
     updateComponentHeight,
     validateMessage,
+    triggerEventHandler,
   } = props
 
   const getValidateMessage = useCallback(
     (value?: unknown) => {
       if (!hideValidationMessage) {
         const message = handleValidateCheck({
-          value,
+          value: getValidateVFromString(value),
           required,
           customRule,
           pattern,
@@ -141,17 +137,7 @@ export const DateWidget: FC<DateWidgetProps> = (props) => {
   )
 
   useEffect(() => {
-    handleUpdateGlobalData(displayName, {
-      value,
-      dateFormat,
-      placeholder,
-      showClear,
-      minDate,
-      disabled,
-      maxDate,
-      readOnly,
-      colorScheme,
-      displayName,
+    updateComponentRuntimeProps({
       setValue: (value: string) => {
         handleUpdateDsl({ value })
       },
@@ -163,35 +149,22 @@ export const DateWidget: FC<DateWidgetProps> = (props) => {
       },
     })
     return () => {
-      handleDeleteGlobalData(displayName)
+      deleteComponentRuntimeProps()
     }
   }, [
-    displayName,
-    value,
-    dateFormat,
-    placeholder,
-    showClear,
-    minDate,
-    disabled,
-    maxDate,
-    readOnly,
-    colorScheme,
-    handleUpdateGlobalData,
+    updateComponentRuntimeProps,
     handleUpdateDsl,
-    handleDeleteGlobalData,
+    deleteComponentRuntimeProps,
     handleValidate,
+    value,
   ])
 
-  const wrapperRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (wrapperRef.current) {
-      updateComponentHeight(wrapperRef.current?.clientHeight)
-    }
-  }, [validateMessage, labelPosition, updateComponentHeight])
+  const handleOnChange = useCallback(() => {
+    triggerEventHandler("change")
+  }, [triggerEventHandler])
 
   return (
-    <div ref={wrapperRef}>
+    <AutoHeightContainer updateComponentHeight={updateComponentHeight}>
       <TooltipWrapper tooltipText={tooltipText} tooltipDisabled={!tooltipText}>
         <div css={applyLabelAndComponentWrapperStyle(labelPosition)}>
           <Label
@@ -206,19 +179,27 @@ export const DateWidget: FC<DateWidgetProps> = (props) => {
             labelHidden={labelHidden}
             hasTooltip={!!tooltipText}
           />
-          <WrappedDate {...props} getValidateMessage={getValidateMessage} />
+          <WrappedDate
+            {...props}
+            getValidateMessage={getValidateMessage}
+            handleOnChange={handleOnChange}
+          />
         </div>
       </TooltipWrapper>
-      <div
-        css={applyValidateMessageWrapperStyle(
-          labelWidth,
-          labelPosition,
-          labelHidden || !label,
-        )}
-      >
-        <InvalidMessage validateMessage={validateMessage} />
-      </div>
-    </div>
+      {!hideValidationMessage && (
+        <div
+          css={applyValidateMessageWrapperStyle(
+            labelWidth,
+            labelPosition,
+            labelHidden || !label,
+          )}
+        >
+          <InvalidMessage validateMessage={validateMessage} />
+        </div>
+      )}
+    </AutoHeightContainer>
   )
 }
 DateWidget.displayName = "DateWidget"
+
+export default DateWidget

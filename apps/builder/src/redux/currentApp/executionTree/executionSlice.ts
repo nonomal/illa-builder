@@ -1,12 +1,20 @@
 import { createSlice } from "@reduxjs/toolkit"
 import {
+  clearLocalStorageInExecutionReducer,
+  resetExecutionResultReducer,
   setDependenciesReducer,
   setExecutionDebuggerDataReducer,
   setExecutionErrorReducer,
   setExecutionResultReducer,
+  setGlobalStateInExecutionReducer,
+  setInGlobalStateInExecutionReducer,
+  setIndependenciesReducer,
+  setLocalStorageInExecutionReducer,
   startExecutionReducer,
+  updateCurrentPagePathReducer,
   updateExecutionByDisplayNameReducer,
   updateExecutionByMultiDisplayNameReducer,
+  updateModalDisplayReducer,
 } from "@/redux/currentApp/executionTree/executionReducer"
 import { executionInitialState } from "@/redux/currentApp/executionTree/executionState"
 
@@ -15,12 +23,20 @@ const executionSlice = createSlice({
   initialState: executionInitialState,
   reducers: {
     setDependenciesReducer,
+    setIndependenciesReducer,
     setExecutionResultReducer,
     setExecutionErrorReducer,
     setExecutionDebuggerDataReducer,
     startExecutionReducer,
     updateExecutionByDisplayNameReducer,
     updateExecutionByMultiDisplayNameReducer,
+    updateModalDisplayReducer,
+    resetExecutionResultReducer,
+    setGlobalStateInExecutionReducer,
+    setInGlobalStateInExecutionReducer,
+    clearLocalStorageInExecutionReducer,
+    setLocalStorageInExecutionReducer,
+    updateCurrentPagePathReducer,
   },
 })
 

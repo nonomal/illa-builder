@@ -1,4 +1,4 @@
-import { ReactComponent as LineProgressWidgetIcon } from "@/assets/widgetCover/lineProgress.svg"
+import LineProgressWidgetIcon from "@/assets/widgetCover/lineProgress.svg?react"
 import i18n from "@/i18n/config"
 import { RESIZE_DIRECTION, WidgetConfig } from "@/widgetLibrary/interface"
 
@@ -9,8 +9,9 @@ export const BAR_PROGRESS_WIDGET_CONFIG: WidgetConfig = {
   keywords: ["Bar Progress", "进度条"],
   icon: <LineProgressWidgetIcon />,
   sessionType: "PRESENTATION",
-  w: 16,
+  w: 8,
   h: 3,
+  version: 0,
   resizeDirection: RESIZE_DIRECTION.HORIZONTAL,
   defaults: {
     value: "50",

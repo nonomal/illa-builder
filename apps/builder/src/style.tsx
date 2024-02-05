@@ -1,6 +1,33 @@
 import { css } from "@emotion/react"
 
+const FONT_SIZE = (100 / 780) * 100
+
+export const mobileAdaptationStyle = css`
+  html {
+    // when vw doesn't work
+    font-size: 41px;
+    // vw works
+    font-size: ${FONT_SIZE}vw;
+    @media screen and (orientation: landscape) {
+      font-size: ${FONT_SIZE}vh;
+    }
+    @media screen and (max-width: 320px) {
+      font-size: 41px;
+    }
+    @media screen and (min-width: 780px) {
+      font-size: 16px;
+    }
+    --dvh: 1dvh;
+  }
+`
+
 export const globalStyle = css`
+  html,
+  body,
+  #root {
+    height: 100%;
+    width: 100%;
+  }
   body {
     margin: 0;
     padding: 0;

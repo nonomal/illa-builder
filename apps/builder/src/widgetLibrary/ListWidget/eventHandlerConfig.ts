@@ -5,9 +5,15 @@ export const LIST_EVENT_HANDLER_CONFIG: EventHandlerConfig = {
   events: [
     {
       label: i18n.t(
-        "editor.inspect.setter_content.widget_action_type_name.row_select",
+        "editor.inspect.setter_content.widget_action_type_name.rowSelect",
       ),
       value: "rowSelect",
+    },
+    {
+      label: i18n.t(
+        "editor.inspect.setter_content.widget_action_type_name.onPaginationModelChange",
+      ),
+      value: "pageChange",
     },
   ],
   methods: [],

@@ -1,12 +1,9 @@
 import { css } from "@emotion/react"
 import { globalColor, illaPrefix } from "@illa-design/react"
-
-export const keyPressComponentStyle = css`
-  padding: 2px 6px;
-  border: 1px solid ${globalColor(`--${illaPrefix}-grayBlue-08`)};
-  border-radius: 4px;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
-`
+import {
+  SCROLL_CONTAINER_PADDING,
+  UNIT_HEIGHT,
+} from "@/page/App/components/DotPanel/constant/canvas"
 
 export const emptyStateStyle = css`
   font-size: 14px;
@@ -14,15 +11,22 @@ export const emptyStateStyle = css`
   text-align: center;
 `
 
-export const emptyStateWrapperStyle = css`
+export const applyEmptyStateWrapperStyle = (
+  isInner: boolean = false,
+  paddingTopBottom: number,
+) => css`
   height: 100%;
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: ${isInner
+    ? "100%"
+    : 15 * UNIT_HEIGHT - 2 * SCROLL_CONTAINER_PADDING + paddingTopBottom};
 `
 
-export const containerWrapperStyle = css`
+export const applyContainerWrapperStyle = css`
   width: 100%;
   height: 100%;
+  display: flex;
 `

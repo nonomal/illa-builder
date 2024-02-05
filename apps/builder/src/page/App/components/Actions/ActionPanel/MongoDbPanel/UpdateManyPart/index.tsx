@@ -1,107 +1,92 @@
-import { FC } from "react"
+import {
+  ActionItem,
+  MongoDbAction,
+  MongoDbActionTypeContent,
+  MongoDbUpdateManyContent,
+} from "@illa-public/public-types"
+import { FC, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import { useDispatch, useSelector } from "react-redux"
-import { CodeEditor } from "@/components/CodeEditor"
+import { CODE_LANG } from "@/components/CodeEditor/CodeMirror/extensions/interface"
 import { MongoDbActionPartProps } from "@/page/App/components/Actions/ActionPanel/MongoDbPanel/interface"
-import {
-  codeEditorLabelStyle,
-  mongoItemCodeEditorStyle,
-  mongoItemStyle,
-} from "@/page/App/components/Actions/ActionPanel/MongoDbPanel/style"
+import { InputEditor } from "@/page/App/components/Actions/InputEditor"
 import { getCachedAction } from "@/redux/config/configSelector"
 import { configActions } from "@/redux/config/configSlice"
-import { UpdateManyContent } from "@/redux/currentApp/action/mongoDbAction"
 import { VALIDATION_TYPES } from "@/utils/validationFactory"
 
 export const UpdateManyPart: FC<MongoDbActionPartProps> = (props) => {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const cachedAction = useSelector(getCachedAction)
-  const typeContent = props.typeContent as UpdateManyContent
+  const cachedAction = useSelector(getCachedAction) as ActionItem<
+    MongoDbAction<MongoDbActionTypeContent>
+  >
+  const typeContent = props.typeContent as MongoDbUpdateManyContent
+
+  const handleValueChange = useCallback(
+    (name: string) => (value: string) => {
+      dispatch(
+        configActions.updateCachedAction({
+          ...cachedAction,
+          content: {
+            ...cachedAction.content,
+            typeContent: {
+              ...typeContent,
+              [name]: value,
+            } as MongoDbUpdateManyContent,
+          },
+        }),
+      )
+    },
+    [cachedAction, dispatch, typeContent],
+  )
 
   return (
     <>
-      <div css={mongoItemStyle}>
-        <span css={codeEditorLabelStyle}>
-          {t("editor.action.panel.mongodb.filter")}
-        </span>
-        <CodeEditor
-          lineNumbers
-          height="88px"
-          css={mongoItemCodeEditorStyle}
-          mode="TEXT_JS"
-          value={typeContent.filter}
-          onChange={(value) => {
-            dispatch(
-              configActions.updateCachedAction({
-                ...cachedAction,
-                content: {
-                  ...cachedAction.content,
-                  typeContent: {
-                    ...typeContent,
-                    filter: value,
-                  } as UpdateManyContent,
-                },
-              }),
-            )
-          }}
-          expectedType={VALIDATION_TYPES.STRING}
-        />
-      </div>
-      <div css={mongoItemStyle}>
-        <span css={codeEditorLabelStyle}>
-          {t("editor.action.panel.mongodb.update")}
-        </span>
-        <CodeEditor
-          lineNumbers
-          height="88px"
-          css={mongoItemCodeEditorStyle}
-          mode="TEXT_JS"
-          value={typeContent.update}
-          onChange={(value) => {
-            dispatch(
-              configActions.updateCachedAction({
-                ...cachedAction,
-                content: {
-                  ...cachedAction.content,
-                  typeContent: {
-                    ...typeContent,
-                    update: value,
-                  } as UpdateManyContent,
-                },
-              }),
-            )
-          }}
-          expectedType={VALIDATION_TYPES.STRING}
-        />
-      </div>
-      <div css={mongoItemStyle}>
-        <span css={codeEditorLabelStyle}>
-          {t("editor.action.panel.mongodb.options")}
-        </span>
-        <CodeEditor
-          lineNumbers
-          height="88px"
-          css={mongoItemCodeEditorStyle}
-          mode="TEXT_JS"
-          value={typeContent.options}
-          onChange={(value) => {
-            dispatch(
-              configActions.updateCachedAction({
-                ...cachedAction,
-                content: {
-                  ...cachedAction.content,
-                  typeContent: {
-                    ...typeContent,
-                    options: value,
-                  } as UpdateManyContent,
-                },
-              }),
-            )
-          }}
-          expectedType={VALIDATION_TYPES.STRING}
-        />
-      </div>
+      <InputEditor
+        title={t("editor.action.panel.mongodb.filter")}
+        lineNumbers
+        style={{ height: "88px" }}
+        value={typeContent.filter}
+        onChange={handleValueChange("filter")}
+        mode={CODE_LANG.JAVASCRIPT}
+        expectedType={VALIDATION_TYPES.STRING}
+        placeholder={
+          "{\n" +
+          '  "type":"cheese",\n' +
+          '  "_id": {\n' +
+          '    "$oid":"646385ae462e929b7a3d86bc"\n' +
+          "  }\n" +
+          "}"
+        }
+      />
+      <InputEditor
+        title={t("editor.action.panel.mongodb.update")}
+        lineNumbers
+        style={{ height: "88px" }}
+        mode={CODE_LANG.JAVASCRIPT}
+        value={typeContent.update}
+        onChange={handleValueChange("update")}
+        expectedType={VALIDATION_TYPES.STRING}
+        placeholder={'{"$set":{"type":"chicken", "price":100}}'}
+      />
+      <InputEditor
+        title={t("editor.action.panel.mongodb.options")}
+        lineNumbers
+        style={{ height: "188px" }}
+        mode={CODE_LANG.JAVASCRIPT}
+        value={typeContent.options}
+        onChange={handleValueChange("options")}
+        expectedType={VALIDATION_TYPES.STRING}
+        placeholder={
+          "{\n" +
+          '"collation":{\n' +
+          '   "locale": "simple",\n' +
+          '   "caseLevel": true,\n' +
+          '   "caseFirst": "upper",\n' +
+          "...\n" +
+          "}}"
+        }
+      />
     </>
   )
 }

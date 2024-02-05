@@ -1,5 +1,5 @@
 import { v4 } from "uuid"
-import { ReactComponent as SelectWidgetIcon } from "@/assets/widgetCover/select.svg"
+import SelectWidgetIcon from "@/assets/widgetCover/select.svg?react"
 import i18n from "@/i18n/config"
 import { RESIZE_DIRECTION, WidgetConfig } from "@/widgetLibrary/interface"
 
@@ -10,9 +10,10 @@ export const SELECT_WIDGET_CONFIG: WidgetConfig = {
   icon: <SelectWidgetIcon />,
   keywords: ["Select", "选择器"],
   sessionType: "SELECT",
-  w: 12,
+  w: 6,
   h: 5,
   resizeDirection: RESIZE_DIRECTION.HORIZONTAL,
+  version: 0,
   defaults: {
     optionConfigureMode: "static",
     label: "Label",

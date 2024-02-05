@@ -1,19 +1,22 @@
-import { FC } from "react"
-import { Controller, useForm } from "react-hook-form"
+import { TransformerAction } from "@illa-public/public-types"
+import { FC, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { useDispatch, useSelector } from "react-redux"
 import { CodeEditor } from "@/components/CodeEditor"
+import {
+  CODE_LANG,
+  CODE_TYPE,
+} from "@/components/CodeEditor/CodeMirror/extensions/interface"
 import { getCachedAction } from "@/redux/config/configSelector"
 import { configActions } from "@/redux/config/configSlice"
-import { TransformerAction } from "@/redux/currentApp/action/transformerAction"
-import { VALIDATION_TYPES } from "@/utils/validationFactory"
 import {
-  transformerEditorStyle,
-  transformerPanelContainerStyle,
-  transformerTipStyle,
-} from "./style"
+  realInputValueWithScript,
+  wrapperScriptCode,
+} from "@/utils/evaluateDynamicString/valueConverter"
+import { VALIDATION_TYPES } from "@/utils/validationFactory"
+import { transformerPanelContainerStyle, transformerTipStyle } from "./style"
 
-export const TransformerPanel: FC = (props) => {
+const TransformerPanel: FC = () => {
   const { t } = useTranslation()
 
   const action = useSelector(getCachedAction)!!
@@ -21,21 +24,26 @@ export const TransformerPanel: FC = (props) => {
 
   const dispatch = useDispatch()
 
+  const realInputValue = useMemo(() => {
+    return realInputValueWithScript(content.transformerString)
+  }, [content.transformerString])
+
   return (
     <div css={transformerPanelContainerStyle}>
       <CodeEditor
-        value={content.transformerString}
-        css={transformerEditorStyle}
-        lineNumbers
+        value={realInputValue}
+        showLineNumbers
+        canShowCompleteInfo
         height="88px"
-        expectedType={VALIDATION_TYPES.STRING}
-        mode="JAVASCRIPT"
+        expectValueType={VALIDATION_TYPES.STRING}
+        lang={CODE_LANG.JAVASCRIPT}
+        codeType={CODE_TYPE.NO_METHOD_FUNCTION}
         onChange={(value) => {
           dispatch(
             configActions.updateCachedAction({
               ...action,
               content: {
-                transformerString: value,
+                transformerString: wrapperScriptCode(value),
               },
             }),
           )
@@ -49,3 +57,4 @@ export const TransformerPanel: FC = (props) => {
 }
 
 TransformerPanel.displayName = "TransformerPanel"
+export default TransformerPanel

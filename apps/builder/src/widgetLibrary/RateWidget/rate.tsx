@@ -1,34 +1,40 @@
-import { FC, useEffect, useRef } from "react"
+import { FC, useCallback, useEffect, useRef } from "react"
 import { Rate } from "@illa-design/react"
+import { AutoHeightContainer } from "@/widgetLibrary/PublicSector/AutoHeightContainer"
 import { Label } from "@/widgetLibrary/PublicSector/Label"
 import { TooltipWrapper } from "@/widgetLibrary/PublicSector/TooltipWrapper"
-import { applyLabelAndComponentWrapperStyle } from "@/widgetLibrary/PublicSector/TransformWidgetWrapper/style"
+import {
+  applyLabelAndComponentWrapperStyle,
+  applyValidateMessageWrapperStyle,
+} from "@/widgetLibrary/PublicSector/TransformWidgetWrapper/style"
+import { InvalidMessage } from "../PublicSector/InvalidMessage"
+import { handleValidateCheck } from "../PublicSector/InvalidMessage/utils"
 import { RateWidgetProps, WrappedRateProps } from "./interface"
+import { rateStyle } from "./style"
 
-export const WrappedRate: FC<WrappedRateProps> = (props, ref) => {
+export const WrappedRate: FC<WrappedRateProps> = (props) => {
   const {
     value,
     allowClear,
     disabled,
     icon,
-    readOnly,
+    readonly,
     allowHalf,
     maxCount,
-    handleUpdateDsl,
+    handleOnChange,
   } = props
 
   return (
     <Rate
+      css={rateStyle}
       count={maxCount}
       allowHalf={allowHalf}
       heart={icon === "heart"}
       disabled={disabled}
-      readonly={readOnly}
+      readonly={readonly}
       allowClear={allowClear}
       value={value}
-      onChange={(value) => {
-        handleUpdateDsl({ value })
-      }}
+      onChange={handleOnChange}
     />
   )
 }
@@ -37,17 +43,9 @@ WrappedRate.displayName = "WrappedRate"
 
 export const RateWidget: FC<RateWidgetProps> = (props) => {
   const {
-    value,
-    allowClear,
-    disabled,
-    icon,
-    readOnly,
-    allowHalf,
-    maxCount,
     handleUpdateDsl,
-    displayName,
-    handleUpdateGlobalData,
-    handleDeleteGlobalData,
+    updateComponentRuntimeProps,
+    deleteComponentRuntimeProps,
     labelPosition,
     labelFull,
     label,
@@ -58,55 +56,90 @@ export const RateWidget: FC<RateWidgetProps> = (props) => {
     required,
     labelHidden,
     tooltipText,
+    hideValidationMessage,
+    validateMessage,
+    customRule,
+    value,
     updateComponentHeight,
+    triggerEventHandler,
   } = props
 
+  const triggerRef = useRef<HTMLDivElement>(null)
+  const getValidateMessage = useCallback(
+    (value?: unknown) => {
+      if (!hideValidationMessage) {
+        const message = handleValidateCheck({
+          value,
+          required,
+          customRule,
+        })
+        const showMessage = message && message.length > 0
+        return showMessage ? message : ""
+      }
+      return ""
+    },
+    [customRule, hideValidationMessage, required],
+  )
+
+  const handleValidate = useCallback(
+    (value?: unknown) => {
+      const message = getValidateMessage(value)
+      handleUpdateDsl({
+        validateMessage: message,
+      })
+      return message
+    },
+    [getValidateMessage, handleUpdateDsl],
+  )
+
   useEffect(() => {
-    handleUpdateGlobalData(displayName, {
-      value,
-      allowClear,
-      disabled,
-      icon,
-      readOnly,
-      allowHalf,
-      maxCount,
+    updateComponentRuntimeProps({
       setValue: (value: number) => {
         handleUpdateDsl({ value })
       },
       clearValue: () => {
         handleUpdateDsl({ value: 0 })
       },
-      validate: () => {},
-      clearValidation: () => {},
+      validate: () => {
+        return handleValidate(value)
+      },
+      clearValidation: () => {
+        handleUpdateDsl({
+          validateMessage: "",
+        })
+      },
     })
     return () => {
-      handleDeleteGlobalData(displayName)
+      deleteComponentRuntimeProps()
     }
   }, [
-    displayName,
-    value,
-    allowClear,
-    disabled,
-    icon,
-    readOnly,
-    allowHalf,
-    maxCount,
-    handleUpdateGlobalData,
+    updateComponentRuntimeProps,
     handleUpdateDsl,
-    handleDeleteGlobalData,
+    deleteComponentRuntimeProps,
+    handleValidate,
+    value,
   ])
 
-  const wrapperRef = useRef<HTMLDivElement>(null)
+  const handleOnChange = useCallback(
+    (value?: string) => {
+      new Promise((resolve) => {
+        const validateMessage = getValidateMessage(value)
+        handleUpdateDsl({ value, validateMessage })
+        resolve(true)
+      }).then(() => {
+        triggerEventHandler("change")
+      })
+    },
+    [getValidateMessage, handleUpdateDsl, triggerEventHandler],
+  )
 
-  useEffect(() => {
-    if (wrapperRef.current) {
-      updateComponentHeight(wrapperRef.current?.clientHeight)
-    }
-  }, [value, required, maxCount, labelPosition])
   return (
-    <div ref={wrapperRef}>
+    <AutoHeightContainer updateComponentHeight={updateComponentHeight}>
       <TooltipWrapper tooltipText={tooltipText} tooltipDisabled={!tooltipText}>
-        <div css={applyLabelAndComponentWrapperStyle(labelPosition)}>
+        <div
+          css={applyLabelAndComponentWrapperStyle(labelPosition)}
+          ref={triggerRef}
+        >
           <Label
             labelFull={labelFull}
             label={label}
@@ -119,10 +152,22 @@ export const RateWidget: FC<RateWidgetProps> = (props) => {
             labelHidden={labelHidden}
             hasTooltip={!!tooltipText}
           />
-          <WrappedRate {...props} />
+          <WrappedRate {...props} handleOnChange={handleOnChange} />
         </div>
       </TooltipWrapper>
-    </div>
+      {!hideValidationMessage && (
+        <div
+          css={applyValidateMessageWrapperStyle(
+            labelWidth,
+            labelPosition,
+            labelHidden || !label,
+          )}
+        >
+          <InvalidMessage validateMessage={validateMessage} />
+        </div>
+      )}
+    </AutoHeightContainer>
   )
 }
 RateWidget.displayName = "RateWidget"
+export default RateWidget

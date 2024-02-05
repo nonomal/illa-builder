@@ -20,6 +20,7 @@ export interface ExecutionState {
   result: Record<string, any>
   error: Record<string, ErrorShape[]>
   debuggerData: Record<string, ErrorShape[]>
+  independencies: DependenciesState
 }
 
 export const executionInitialState: ExecutionState = {
@@ -27,6 +28,7 @@ export const executionInitialState: ExecutionState = {
   result: {},
   error: {},
   debuggerData: {},
+  independencies: {},
 }
 
 export interface setExecutionResultPayload {
@@ -36,4 +38,9 @@ export interface setExecutionResultPayload {
 export interface UpdateExecutionByDisplayNamePayload {
   displayName: string
   value: Record<string, any>
+}
+
+export interface UpdateCurrentPagePathPayload {
+  pageDisplayName: string
+  subPagePath?: string
 }

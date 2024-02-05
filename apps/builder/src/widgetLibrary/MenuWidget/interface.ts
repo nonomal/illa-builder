@@ -1,42 +1,25 @@
-import { HTMLAttributes } from "react"
 import { MenuProps } from "@illa-design/react"
 import { BaseWidgetProps } from "@/widgetLibrary/interface"
 
-export type MenuHorizontalAlign = "flex-start" | "center" | "flex-end"
-
-export interface WrappedMenuProps
-  extends HTMLAttributes<HTMLDivElement>,
-    MenuProps {
-  menuList?: MenuList[]
-  emptyState?: string
-  pageSize?: number
-  defaultSortKey?: string
-  defaultSortOrder?: "ascend" | "descend"
-  handleOnSortingChange?: () => void
-  handleOnPaginationChange?: () => void
-  handleOnColumnFiltersChange?: () => void
-  handleUpdateOriginalDSLMultiAttr: (updateSlice: Record<string, any>) => void
-  handleOnClickMenuItem: (path: string) => void
+export interface WrappedMenuProps extends MenuProps {
+  menuLogo?: string
+  menuTitle?: string
+  onClickMenuLogo: () => void
 }
 
-export type MenuMode = "vertical" | "horizontal"
-
-export interface MenuItemLabelProps {
-  title?: string
-  icon?: string
-  mode?: MenuMode
+export interface MenuWidgetProps
+  extends Omit<WrappedMenuProps, "handleOnClickMenuItem" | "w" | "h">,
+    BaseWidgetProps {
+  menuLogo?: string
+  menuTitle?: string
+  optionConfigureMode?: "dynamic" | "static"
+  mappedOption?: {
+    labels: string[]
+    values: any[]
+    icons: string[]
+    disables: boolean[]
+    hidden: boolean[]
+    groupLabels: string[]
+  }
+  onClickMenuLogo: () => void
 }
-
-export interface SubMenu {
-  id: string
-  title: string
-  icon?: string
-  hidden?: boolean
-  disabled?: boolean
-}
-
-export interface MenuList extends SubMenu {
-  subMenu?: SubMenu[]
-}
-
-export interface MenuWidgetProps extends WrappedMenuProps, BaseWidgetProps {}

@@ -1,5 +1,6 @@
-import { FC, memo } from "react"
-import { useTranslation } from "react-i18next"
+import { memo } from "react"
+import { useSelector } from "react-redux"
+import { getGuideStatus } from "@/redux/guide/guideSelector"
 import { ComponentItem } from "./ComponentItem"
 import { ComponentSessionProps } from "./interface"
 import {
@@ -9,15 +10,24 @@ import {
 } from "./style"
 
 export const ComponentSession = memo((props: ComponentSessionProps) => {
-  const { title, widgetCardInfos } = props
-  const { t } = useTranslation()
+  const { sessionTitle, widgetCardInfos, sessionType } = props
+  const isGuideOpen = useSelector(getGuideStatus)
 
   return widgetCardInfos.length > 0 ? (
-    <div css={sessionContainerStyle}>
-      <span css={sessionTitleStyle}>{t(title)}</span>
+    <div
+      css={sessionContainerStyle}
+      {...(isGuideOpen ? { "data-onboarding-session": sessionType } : {})}
+    >
+      <span css={sessionTitleStyle}>{sessionTitle}</span>
       <div css={componentListContainerStyle}>
         {widgetCardInfos.map((item) => (
-          <ComponentItem key={item.id} {...item} />
+          <ComponentItem
+            key={item.id}
+            icon={item.icon}
+            widgetType={item.widgetType}
+            widgetName={item.widgetName}
+            displayName={item.displayName}
+          />
         ))}
       </div>
     </div>

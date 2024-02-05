@@ -1,4 +1,4 @@
-import { ReactComponent as CascaderWidgetIcon } from "@/assets/widgetCover/cascader.svg"
+import CascaderWidgetIcon from "@/assets/widgetCover/cascader.svg?react"
 import i18n from "@/i18n/config"
 import { RESIZE_DIRECTION, WidgetConfig } from "@/widgetLibrary/interface"
 
@@ -9,9 +9,10 @@ export const CASCADER_WIDGET_CONFIG: WidgetConfig = {
   keywords: ["cascader", "级联选择"],
   icon: <CascaderWidgetIcon />,
   sessionType: "SELECT",
-  w: 12,
+  w: 6,
   h: 5,
   resizeDirection: RESIZE_DIRECTION.HORIZONTAL,
+  version: 0,
   defaults: {
     dataSourceJS: `{{[
   {

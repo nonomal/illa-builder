@@ -1,41 +1,48 @@
-import { SectionViewShape } from "@/redux/currentApp/editor/components/componentsState"
+import { SectionViewShape } from "@illa-public/public-types"
 
 export interface HeaderProps {
-  sectionName: string
-  sectionNodeExecutionResult: Record<string, any>
+  sectionName:
+    | "leftSection"
+    | "rightSection"
+    | "headerSection"
+    | "footerSection"
+    | "bodySection"
+  parentNodeDisplayName: string
 }
 
 export interface ViewListProps {
-  sectionName: string
+  sectionName:
+    | "leftSection"
+    | "rightSection"
+    | "headerSection"
+    | "footerSection"
+    | "bodySection"
 }
 
 export interface BodyProps {
-  sectionNodeExecutionResult: Record<string, any>
+  sectionName: string
+  parentNodeDisplayName: string
+  currentViewIndex: number
+  viewSortedKey: string[]
+  sectionViewConfigs: SectionViewShape[]
 }
 
 export interface ItemProps extends Omit<SectionViewShape, "id" | "key"> {
-  name: string
-  otherKeys: string[]
-  isSelected: boolean
+  otherPaths: string[]
   index: number
-  handleChangSectionView: (index: number) => void
   handleDeleteSectionView: (index: number) => void
   handleUpdateItem: (path: string, value: string) => void
   attrPath: string
+  parentNodeDisplayName: string
 }
 
 export interface LabelNameAndDragIconProps {
   name: string
   isDuplicationKey: boolean
-  isSelected: boolean
-  index: number
-  handleChangSectionView: (index: number) => void
 }
 
 export interface ModalProps {
   onCloseModal: () => void
-  name: string
   path: string
-  handleUpdateItem: (path: string, value: string) => void
-  attrPath: string
+  handleUpdateItem: (value: string) => void
 }

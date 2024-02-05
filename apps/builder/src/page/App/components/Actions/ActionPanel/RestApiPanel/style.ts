@@ -1,13 +1,28 @@
 import { css } from "@emotion/react"
-import { globalColor, illaPrefix } from "@illa-design/react"
+import { getColor } from "@illa-design/react"
 
 export const restapiPanelContainerStyle = css`
   display: flex;
   flex-direction: column;
 `
 
-export const topDivider = css`
-  min-height: 8px;
+export const actionItemContainer = css`
+  padding: 8px 0;
+`
+
+export const urlStyle = css`
+  width: 200px;
+  box-sizing: border-box;
+  color: ${getColor("grayBlue", "02")};
+  font-weight: 400;
+  margin-left: 24px;
+  margin-right: 8px;
+  border-radius: 8px 0 0 8px;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  overflow-wrap: break-word;
+  white-space: nowrap;
+  overflow: hidden;
 `
 
 export const restapiItemStyle = css`
@@ -23,11 +38,10 @@ export const restapiItemLabelStyle = css`
   font-size: 14px;
   font-weight: 500;
   text-align: right;
-  color: ${globalColor(`--${illaPrefix}-grayBlue-02`)};
+  color: ${getColor("grayBlue", "02")};
 `
 
 export const restapiItemInputStyle = css`
   flex-grow: 1;
   width: 0;
-  margin-left: -1px;
 `

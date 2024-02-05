@@ -1,36 +1,4 @@
-import { ElasticSearchAction } from "./elasticSearchAction"
-import { MongoDbAction, MongoDbActionTypeContent } from "./mongoDbAction"
-import { MysqlLikeAction } from "./mysqlLikeAction"
-import { RedisAction } from "./redisAction"
-import { BodyContent, RestApiAction } from "./restapiAction"
-import { S3Action, S3ActionTypeContent } from "./s3Action"
-import { SMPTAction } from "./smtpAction"
-import { TransformerAction } from "./transformerAction"
-
-export interface Transformer {
-  rawData: string
-  enable: boolean
-}
-
-export interface ActionRunResult {
-  data: {
-    Rows: Record<string, any>[]
-    Extra?: Record<string, any> | null
-  }
-}
-
-export const TransformerInitial: Transformer = {
-  rawData: "",
-  enable: false,
-}
-
-export const TransformerInitialTrue: Transformer = {
-  rawData:
-    "// type your code here\n" +
-    "// example: return formatDataAsArray(data).filter(row => row.quantity > 20)\n" +
-    "return data",
-  enable: true,
-}
+import { ActionContent, ActionItem } from "@illa-public/public-types"
 
 // TODO @aruseito not use any
 export interface Events {
@@ -38,45 +6,23 @@ export interface Events {
   failedEvent?: any[]
 }
 
-export type ActionType =
-  | "mysql"
-  | "restapi"
-  | "graphql"
-  | "mongodb"
-  | "redis"
-  | "elasticsearch"
-  | "postgresql"
-  | "mariadb"
-  | "tidb"
-  | "smtp"
-  | "s3"
-  | "transformer"
+export interface UpdateActionDisplayNamePayload {
+  oldDisplayName: string
+  newDisplayName: string
+  actionID: string
+}
 
-export type ActionTriggerMode = "manually" | "automate"
-
-export interface ActionItem<T extends ActionContent> {
-  actionId: string
+export interface UpdateActionSlicePropsPayload {
   displayName: string
-  actionType: ActionType
-  transformer: Transformer
-  triggerMode: ActionTriggerMode
-  resourceId?: string
-  content: T
+  actionID: string
+  propsSlice: {
+    [key: string]: unknown
+  }
 }
-
-export const actionItemInitial: Partial<ActionItem<ActionContent>> = {
-  transformer: TransformerInitial,
-  triggerMode: "manually",
-}
-
-export type ActionContent =
-  | SMPTAction
-  | S3Action<S3ActionTypeContent>
-  | ElasticSearchAction
-  | MysqlLikeAction
-  | RestApiAction<BodyContent>
-  | TransformerAction
-  | RedisAction
-  | MongoDbAction<MongoDbActionTypeContent>
 
 export const actionInitialState: ActionItem<ActionContent>[] = []
+
+export interface RemoveActionItemReducerPayload {
+  actionID: string
+  displayName: string
+}

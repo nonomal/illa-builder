@@ -1,6 +1,7 @@
-import dayjs from "dayjs"
-import { FC, forwardRef, useCallback, useEffect, useRef } from "react"
-import { DatePicker } from "@illa-design/react"
+import dayjs, { Dayjs } from "dayjs"
+import { FC, useCallback, useEffect } from "react"
+import { SingleDatePicker } from "@illa-design/react"
+import { AutoHeightContainer } from "@/widgetLibrary/PublicSector/AutoHeightContainer"
 import { InvalidMessage } from "@/widgetLibrary/PublicSector/InvalidMessage"
 import { handleValidateCheck } from "@/widgetLibrary/PublicSector/InvalidMessage/utils"
 import { Label } from "@/widgetLibrary/PublicSector/Label"
@@ -11,80 +12,7 @@ import {
 } from "@/widgetLibrary/PublicSector/TransformWidgetWrapper/style"
 import { DateTimeWidgetProps, WrappedDateTimeProps } from "./interface"
 
-export const WrappedDateTime = forwardRef<any, WrappedDateTimeProps>(
-  (props, ref) => {
-    const {
-      value,
-      format,
-      placeholder,
-      showClear,
-      minDate,
-      disabled,
-      maxDate,
-      readOnly,
-      minuteStep,
-      colorScheme,
-      handleOnChange,
-      getValidateMessage,
-      handleUpdateMultiExecutionResult,
-      displayName,
-    } = props
-
-    const changeValue = (value?: unknown) => {
-      new Promise((resolve) => {
-        const message = getValidateMessage(value)
-        handleUpdateMultiExecutionResult([
-          {
-            displayName,
-            value: {
-              value: value || "",
-              validateMessage: message,
-            },
-          },
-        ])
-        resolve(true)
-      }).then(() => {
-        handleOnChange?.()
-      })
-    }
-
-    const checkRange = useCallback(
-      (current) => {
-        const beforeMinDate = minDate
-          ? !!current?.isBefore(dayjs(minDate))
-          : false
-        const afterMaxDate = maxDate
-          ? !!current?.isAfter(dayjs(maxDate))
-          : false
-        return beforeMinDate || afterMaxDate
-      },
-      [minDate, maxDate],
-    )
-
-    return (
-      <DatePicker
-        w="100%"
-        showTime={{ step: { minute: minuteStep }, format }}
-        colorScheme={colorScheme}
-        format={format}
-        value={value}
-        readOnly={readOnly}
-        disabled={disabled}
-        placeholder={placeholder}
-        allowClear={showClear}
-        disabledDate={checkRange}
-        onClear={() => {
-          changeValue("")
-        }}
-        onChange={changeValue}
-      />
-    )
-  },
-)
-
-WrappedDateTime.displayName = "WrappedDateTime"
-
-export const DateTimeWidget: FC<DateTimeWidgetProps> = (props) => {
+export const WrappedDateTime: FC<WrappedDateTimeProps> = (props) => {
   const {
     value,
     format,
@@ -93,12 +21,71 @@ export const DateTimeWidget: FC<DateTimeWidgetProps> = (props) => {
     minDate,
     disabled,
     maxDate,
-    readOnly,
     minuteStep,
     colorScheme,
+    handleOnChange,
+    getValidateMessage,
+    handleUpdateMultiExecutionResult,
     displayName,
-    handleUpdateGlobalData,
-    handleDeleteGlobalData,
+    readOnly,
+  } = props
+
+  const changeValue = (value?: unknown) => {
+    new Promise((resolve) => {
+      const message = getValidateMessage(value)
+      handleUpdateMultiExecutionResult([
+        {
+          displayName,
+          value: {
+            value: value || "",
+            validateMessage: message,
+          },
+        },
+      ])
+      resolve(true)
+    }).then(() => {
+      handleOnChange?.()
+    })
+  }
+
+  const checkRange = useCallback(
+    (current?: Dayjs) => {
+      const beforeMinDate = minDate
+        ? !!current?.isBefore(dayjs(minDate))
+        : false
+      const afterMaxDate = maxDate ? !!current?.isAfter(dayjs(maxDate)) : false
+      return beforeMinDate || afterMaxDate
+    },
+    [minDate, maxDate],
+  )
+
+  return (
+    <SingleDatePicker
+      w="100%"
+      showTime={{ step: { minute: minuteStep }, format }}
+      colorScheme={colorScheme}
+      format={format}
+      value={value}
+      disabled={disabled}
+      placeholder={placeholder}
+      allowClear={showClear}
+      disabledDate={checkRange}
+      onClear={() => {
+        changeValue("")
+      }}
+      onChange={changeValue}
+      editable={!readOnly}
+    />
+  )
+}
+
+WrappedDateTime.displayName = "WrappedDateTime"
+
+export const DateTimeWidget: FC<DateTimeWidgetProps> = (props) => {
+  const {
+    value,
+    updateComponentRuntimeProps,
+    deleteComponentRuntimeProps,
     handleUpdateDsl,
     labelPosition,
     labelFull,
@@ -116,6 +103,7 @@ export const DateTimeWidget: FC<DateTimeWidgetProps> = (props) => {
     hideValidationMessage,
     updateComponentHeight,
     validateMessage,
+    triggerEventHandler,
   } = props
 
   const getValidateMessage = useCallback(
@@ -148,17 +136,7 @@ export const DateTimeWidget: FC<DateTimeWidgetProps> = (props) => {
   )
 
   useEffect(() => {
-    handleUpdateGlobalData(displayName, {
-      value,
-      format,
-      placeholder,
-      showClear,
-      minDate,
-      disabled,
-      maxDate,
-      readOnly,
-      minuteStep,
-      colorScheme,
+    updateComponentRuntimeProps({
       setValue: (value: string) => {
         handleUpdateDsl({ value })
       },
@@ -170,36 +148,22 @@ export const DateTimeWidget: FC<DateTimeWidgetProps> = (props) => {
       },
     })
     return () => {
-      handleDeleteGlobalData(displayName)
+      deleteComponentRuntimeProps()
     }
   }, [
-    displayName,
-    value,
-    format,
-    placeholder,
-    showClear,
-    minDate,
-    disabled,
-    maxDate,
-    readOnly,
-    minuteStep,
-    colorScheme,
-    handleUpdateGlobalData,
+    deleteComponentRuntimeProps,
     handleUpdateDsl,
-    handleDeleteGlobalData,
     handleValidate,
+    updateComponentRuntimeProps,
+    value,
   ])
 
-  const wrapperRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (wrapperRef.current) {
-      updateComponentHeight(wrapperRef.current?.clientHeight)
-    }
-  }, [labelPosition, validateMessage, updateComponentHeight])
+  const handleOnChange = useCallback(() => {
+    triggerEventHandler("change")
+  }, [triggerEventHandler])
 
   return (
-    <div ref={wrapperRef}>
+    <AutoHeightContainer updateComponentHeight={updateComponentHeight}>
       <TooltipWrapper tooltipText={tooltipText} tooltipDisabled={!tooltipText}>
         <div css={applyLabelAndComponentWrapperStyle(labelPosition)}>
           <Label
@@ -214,20 +178,27 @@ export const DateTimeWidget: FC<DateTimeWidgetProps> = (props) => {
             labelHidden={labelHidden}
             hasTooltip={!!tooltipText}
           />
-          <WrappedDateTime {...props} getValidateMessage={getValidateMessage} />
+          <WrappedDateTime
+            {...props}
+            getValidateMessage={getValidateMessage}
+            handleOnChange={handleOnChange}
+          />
         </div>
       </TooltipWrapper>
-      <div
-        css={applyValidateMessageWrapperStyle(
-          labelWidth,
-          labelPosition,
-          labelHidden || !label,
-        )}
-      >
-        <InvalidMessage validateMessage={validateMessage} />
-      </div>
-    </div>
+      {!hideValidationMessage && (
+        <div
+          css={applyValidateMessageWrapperStyle(
+            labelWidth,
+            labelPosition,
+            labelHidden || !label,
+          )}
+        >
+          <InvalidMessage validateMessage={validateMessage} />
+        </div>
+      )}
+    </AutoHeightContainer>
   )
 }
 
 DateTimeWidget.displayName = "DateTimeWidget"
+export default DateTimeWidget

@@ -1,5 +1,13 @@
-import { ComponentNode } from "@/redux/currentApp/editor/components/componentsState"
+import { ComponentTreeNode } from "@illa-public/public-types"
 
 export interface TransformWidgetProps {
-  componentNode: ComponentNode
+  displayName: string
+  widgetType: string
+  parentNodeDisplayName: string
+  columnNumber?: number
+}
+
+export interface TransformWidgetWrapperWithJsonProps {
+  componentNode: ComponentTreeNode
+  unitW: number
 }

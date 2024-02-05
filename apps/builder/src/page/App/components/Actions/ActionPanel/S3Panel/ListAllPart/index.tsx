@@ -1,34 +1,20 @@
-import { FC } from "react"
-import { useTranslation } from "react-i18next"
-import { useDispatch, useSelector } from "react-redux"
-import { Popover, Select } from "@illa-design/react"
-import { CodeEditor } from "@/components/CodeEditor"
-import { S3ActionPartProps } from "@/page/App/components/Actions/ActionPanel/S3Panel/interface"
 import {
-  codeEditorLabelStyle,
-  s3ItemCodeEditorStyle,
-  s3ItemStyle,
-} from "@/page/App/components/Actions/ActionPanel/S3Panel/style"
-import { getCachedAction } from "@/redux/config/configSelector"
-import { configActions } from "@/redux/config/configSlice"
-import { ActionItem } from "@/redux/currentApp/action/actionState"
-import {
-  ListAllContent,
+  ActionItem,
   S3Action,
   S3ActionTypeContent,
-} from "@/redux/currentApp/action/s3Action"
+  S3ListAllContent,
+} from "@illa-public/public-types"
+import { FC, useCallback } from "react"
+import { useTranslation } from "react-i18next"
+import { useDispatch, useSelector } from "react-redux"
+import { CODE_LANG } from "@/components/CodeEditor/CodeMirror/extensions/interface"
+import { S3ActionPartProps } from "@/page/App/components/Actions/ActionPanel/S3Panel/interface"
+import { SingleTypeComponent } from "@/page/App/components/Actions/ActionPanel/SingleTypeComponent"
+import { InputEditor } from "@/page/App/components/Actions/InputEditor"
+import { getCachedAction } from "@/redux/config/configSelector"
+import { configActions } from "@/redux/config/configSlice"
 import { VALIDATION_TYPES } from "@/utils/validationFactory"
-
-const SelectOption = [
-  {
-    label: "No",
-    value: 0,
-  },
-  {
-    label: "Yes",
-    value: 1,
-  },
-]
+import { SelectOption } from "../constants"
 
 export const ListAllPart: FC<S3ActionPartProps> = (props) => {
   const { t } = useTranslation()
@@ -36,118 +22,82 @@ export const ListAllPart: FC<S3ActionPartProps> = (props) => {
   const cachedAction = useSelector(getCachedAction) as ActionItem<
     S3Action<S3ActionTypeContent>
   >
-  const commandArgs = props.commandArgs as ListAllContent
+  const commandArgs = props.commandArgs as S3ListAllContent
   const isShowSignedURL = commandArgs.signedURL
 
-  const handleValueChange = (value: string | boolean, name: string) => {
-    dispatch(
-      configActions.updateCachedAction({
-        ...cachedAction,
-        content: {
-          ...cachedAction.content,
-          commandArgs: {
-            ...commandArgs,
-            [name]: value,
-          } as ListAllContent,
-        },
-      }),
-    )
-  }
+  const handleValueChange = useCallback(
+    (name: string) => (value: string | boolean) => {
+      dispatch(
+        configActions.updateCachedAction({
+          ...cachedAction,
+          content: {
+            ...cachedAction.content,
+            commandArgs: {
+              ...commandArgs,
+              [name]: value,
+            } as S3ListAllContent,
+          },
+        }),
+      )
+    },
+    [cachedAction, commandArgs, dispatch],
+  )
 
   return (
     <>
-      <div css={s3ItemStyle}>
-        <span css={codeEditorLabelStyle}>
-          {t("editor.action.panel.s3.bucket_name")}
-        </span>
-        <CodeEditor
-          css={s3ItemCodeEditorStyle}
-          mode="TEXT_JS"
-          value={commandArgs.bucketName}
-          onChange={(value) => handleValueChange(value, "bucketName")}
-          expectedType={VALIDATION_TYPES.STRING}
-        />
-      </div>
-      <div css={s3ItemStyle}>
-        <span css={codeEditorLabelStyle}>
-          {t("editor.action.panel.s3.prefix_to_filter_reseults")}
-        </span>
-        <CodeEditor
-          css={s3ItemCodeEditorStyle}
-          mode="TEXT_JS"
-          value={commandArgs.prefix}
-          onChange={(value) => handleValueChange(value, "prefix")}
-          expectedType={VALIDATION_TYPES.STRING}
-        />
-      </div>
-      <div css={s3ItemStyle}>
-        <Popover
-          content={t("editor.action.panel.s3.tips.delimiter")}
-          hasCloseIcon={false}
-          trigger="hover"
-          colorScheme="gray"
-          showArrow={false}
-        >
-          <span css={codeEditorLabelStyle}>
-            {t("editor.action.panel.s3.delimiter")}
-          </span>
-        </Popover>
-        <CodeEditor
-          css={s3ItemCodeEditorStyle}
-          mode="TEXT_JS"
-          value={commandArgs.delimiter}
-          onChange={(value) => handleValueChange(value, "delimiter")}
-          expectedType={VALIDATION_TYPES.STRING}
-        />
-      </div>
-      <div css={s3ItemStyle}>
-        <span css={codeEditorLabelStyle}>
-          {t("editor.action.panel.s3.generate_signed_url")}
-        </span>
-        <Select
-          colorScheme="techPurple"
-          showSearch={true}
-          value={+commandArgs.signedURL}
-          ml="16px"
-          width="100%"
-          onChange={(value) => handleValueChange(!!value, "signedURL")}
-          options={SelectOption}
-        />
-      </div>
+      <InputEditor
+        title={t("editor.action.panel.s3.bucket_name")}
+        mode={CODE_LANG.JAVASCRIPT}
+        value={commandArgs.bucketName}
+        onChange={handleValueChange("bucketName")}
+        expectedType={VALIDATION_TYPES.STRING}
+      />
+      <InputEditor
+        title={t("editor.action.panel.s3.prefix_to_filter_reseults")}
+        mode={CODE_LANG.JAVASCRIPT}
+        value={commandArgs.prefix}
+        onChange={handleValueChange("prefix")}
+        expectedType={VALIDATION_TYPES.STRING}
+      />
+      <InputEditor
+        title={t("editor.action.panel.s3.delimiter")}
+        popoverContent={t("editor.action.panel.s3.tips.delimiter")}
+        mode={CODE_LANG.JAVASCRIPT}
+        value={commandArgs.delimiter}
+        onChange={handleValueChange("delimiter")}
+        expectedType={VALIDATION_TYPES.STRING}
+      />
+      <SingleTypeComponent
+        componentType="select"
+        value={+commandArgs.signedURL}
+        title={t("editor.action.panel.s3.generate_signed_url")}
+        showSearch
+        onSelectedValueChange={(value) =>
+          handleValueChange("signedURL")(!!value)
+        }
+        options={SelectOption}
+        style={{
+          position: "relative",
+          zIndex: 0,
+        }}
+      />
       {isShowSignedURL && (
-        <div css={s3ItemStyle}>
-          <span css={codeEditorLabelStyle}>
-            {t("editor.action.panel.s3.expiry_duration_of_signed_url")}
-          </span>
-          <CodeEditor
-            css={s3ItemCodeEditorStyle}
-            mode="TEXT_JS"
-            value={String(commandArgs.expiry)}
-            onChange={(value) => handleValueChange(value, "expiry")}
-            expectedType={VALIDATION_TYPES.NUMBER}
-          />
-        </div>
-      )}
-      <div css={s3ItemStyle}>
-        <Popover
-          content={t("editor.action.panel.s3.tips.max_keys")}
-          colorScheme="gray"
-          showArrow={false}
-          trigger="hover"
-          hasCloseIcon={false}
-        >
-          <span css={codeEditorLabelStyle}>
-            {t("editor.action.panel.s3.max_keys")}
-          </span>
-        </Popover>
-        <CodeEditor
-          css={s3ItemCodeEditorStyle}
-          mode="TEXT_JS"
-          value={commandArgs.maxKeys}
-          onChange={(value) => handleValueChange(value, "maxKeys")}
+        <InputEditor
+          title={t("editor.action.panel.s3.expiry_duration_of_signed_url")}
+          mode={CODE_LANG.JAVASCRIPT}
+          value={String(commandArgs.expiry)}
+          onChange={handleValueChange("expiry")}
           expectedType={VALIDATION_TYPES.NUMBER}
         />
-      </div>
+      )}
+      <InputEditor
+        title={t("editor.action.panel.s3.max_keys")}
+        popoverContent={t("editor.action.panel.s3.tips.max_keys")}
+        mode={CODE_LANG.JAVASCRIPT}
+        value={commandArgs.maxKeys}
+        onChange={handleValueChange("maxKeys")}
+        expectedType={VALIDATION_TYPES.NUMBER}
+      />
     </>
   )
 }

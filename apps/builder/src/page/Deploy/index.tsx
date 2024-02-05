@@ -1,45 +1,27 @@
-import { Unsubscribe } from "@reduxjs/toolkit"
-import { FC, useEffect } from "react"
-import { Loading } from "@illa-design/react"
-import { ReactComponent as Logo } from "@/assets/illa-logo.svg"
-import { useInitBuilderApp } from "@/hooks/useInitApp"
-import { CanvasPanel } from "@/page/App/components/CanvasPanel"
-import {
-  deployContainerStyle,
-  deployLogoStyle,
-  logoStyle,
-} from "@/page/Deploy/style"
-import { setupExecutionListeners } from "@/redux/currentApp/executionTree/executionListener"
-import { startAppListening } from "@/store"
+import { FC, Suspense } from "react"
+import { Await, useLoaderData } from "react-router-dom"
+import { FullPageLoading } from "@/components/FullPageLoading"
+import { deployContainerStyle } from "@/page/Deploy/style"
+import Page404 from "@/page/Status/404"
+import { MediaSourceLoadProvider } from "@/utils/mediaSourceLoad"
+import { DeployContent } from "./content"
 
 export const Deploy: FC = () => {
-  const loadingState = useInitBuilderApp("production")
+  const data = useLoaderData()
 
-  useEffect(() => {
-    const subscriptions: Unsubscribe[] = [
-      setupExecutionListeners(startAppListening),
-    ]
-    return () => subscriptions.forEach((unsubscribe) => unsubscribe())
-  }, [])
   return (
     <div css={deployContainerStyle}>
-      {loadingState && (
-        <div>
-          <Loading colorScheme="techPurple" />
-        </div>
-      )}
-      {!loadingState && <CanvasPanel />}
-      <div
-        css={deployLogoStyle}
-        onClick={() => {
-          window.open("https://illacloud.com", "_blank")
-        }}
-      >
-        <span>Powered by</span>
-        <Logo css={logoStyle} />
-      </div>
+      <Suspense fallback={<FullPageLoading />}>
+        <Await resolve={data} errorElement={<Page404 />}>
+          <MediaSourceLoadProvider>
+            <DeployContent />
+          </MediaSourceLoadProvider>
+        </Await>
+      </Suspense>
     </div>
   )
 }
+
+export default Deploy
 
 Deploy.displayName = "Deploy"

@@ -1,5 +1,5 @@
 import { v4 } from "uuid"
-import { ReactComponent as RadioGroupWidgetIcon } from "@/assets/widgetCover/radioGroup.svg"
+import RadioGroupWidgetIcon from "@/assets/widgetCover/radioGroup.svg?react"
 import i18n from "@/i18n/config"
 import { RESIZE_DIRECTION, WidgetConfig } from "@/widgetLibrary/interface"
 
@@ -10,9 +10,10 @@ export const RADIO_GROUP_WIDGET_CONFIG: WidgetConfig = {
   icon: <RadioGroupWidgetIcon />,
   keywords: ["Radio Group", "单选框组"],
   sessionType: "SELECT",
-  w: 25,
+  w: 13,
   h: 3,
   resizeDirection: RESIZE_DIRECTION.HORIZONTAL,
+  version: 0,
   defaults: {
     optionConfigureMode: "static",
     label: "Label",

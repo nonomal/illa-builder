@@ -1,4 +1,4 @@
-import { FC, useEffect } from "react"
+import { FC, useCallback } from "react"
 import { Button } from "@illa-design/react"
 import { buttonLayoutStyle } from "@/widgetLibrary/ButtonWidget/style"
 import { TooltipWrapper } from "@/widgetLibrary/PublicSector/TooltipWrapper"
@@ -36,52 +36,20 @@ export const WrappedButton: FC<WrappedButtonProps> = (props) => {
 WrappedButton.displayName = "WrappedButton"
 
 export const ButtonWidget: FC<ButtonWidgetProps> = (props) => {
-  const {
-    text,
-    variant,
-    leftIcon,
-    rightIcon,
-    disabled,
-    loading,
-    colorScheme,
-    handleUpdateGlobalData,
-    handleDeleteGlobalData,
-    displayName,
-    tooltipText,
-  } = props
+  const { tooltipText, triggerEventHandler } = props
 
-  useEffect(() => {
-    handleUpdateGlobalData(displayName, {
-      text,
-      variant,
-      leftIcon,
-      rightIcon,
-      disabled,
-      loading,
-      colorScheme,
-    })
-    return () => {
-      handleDeleteGlobalData(displayName)
-    }
-  }, [
-    text,
-    variant,
-    leftIcon,
-    rightIcon,
-    disabled,
-    loading,
-    colorScheme,
-    handleUpdateGlobalData,
-    displayName,
-    handleDeleteGlobalData,
-  ])
+  const handleOnClick = useCallback(() => {
+    triggerEventHandler("click")
+  }, [triggerEventHandler])
+
   return (
     <TooltipWrapper tooltipText={tooltipText} tooltipDisabled={!tooltipText}>
       <div css={buttonLayoutStyle}>
-        <WrappedButton {...props} />
+        <WrappedButton {...props} handleOnClick={handleOnClick} />
       </div>
     </TooltipWrapper>
   )
 }
 
 ButtonWidget.displayName = "ButtonWidget"
+export default ButtonWidget

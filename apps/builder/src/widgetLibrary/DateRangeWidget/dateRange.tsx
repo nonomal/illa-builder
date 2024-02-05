@@ -1,6 +1,7 @@
-import dayjs from "dayjs"
-import { FC, useCallback, useEffect, useMemo, useRef } from "react"
-import { DateRangePicker } from "@illa-design/react"
+import dayjs, { Dayjs } from "dayjs"
+import { FC, useCallback, useEffect, useMemo } from "react"
+import { RangeDatePicker } from "@illa-design/react"
+import { AutoHeightContainer } from "@/widgetLibrary/PublicSector/AutoHeightContainer"
 import { InvalidMessage } from "@/widgetLibrary/PublicSector/InvalidMessage"
 import { Label } from "@/widgetLibrary/PublicSector/Label"
 import { TooltipWrapper } from "@/widgetLibrary/PublicSector/TooltipWrapper"
@@ -22,12 +23,12 @@ export const WrappedDateRange: FC<WrappedDateRangeProps> = (props) => {
     minDate,
     disabled,
     maxDate,
-    readOnly,
     colorScheme,
     handleOnChange,
     getValidateMessage,
     handleUpdateMultiExecutionResult,
     displayName,
+    readOnly,
   } = props
 
   const changeValue = (value?: string[]) => {
@@ -57,7 +58,7 @@ export const WrappedDateRange: FC<WrappedDateRangeProps> = (props) => {
   }, [startValue, endValue])
 
   const checkRange = useCallback(
-    (current) => {
+    (current?: Dayjs) => {
       const beforeMinDate = minDate
         ? !!current?.isBefore(dayjs(minDate))
         : false
@@ -68,12 +69,12 @@ export const WrappedDateRange: FC<WrappedDateRangeProps> = (props) => {
   )
 
   return (
-    <DateRangePicker
+    <RangeDatePicker
       w="100%"
+      editable={!readOnly}
       colorScheme={colorScheme}
       format={dateFormat}
       value={dateRangeValue}
-      readOnly={readOnly}
       disabled={disabled}
       placeholder={_placeholder}
       allowClear={showClear}
@@ -92,18 +93,9 @@ export const DateRangeWidget: FC<DateWidgetProps> = (props) => {
   const {
     startValue,
     endValue,
-    dateFormat,
-    startPlaceholder,
     endPlaceholder,
-    showClear,
-    minDate,
-    disabled,
-    maxDate,
-    readOnly,
-    colorScheme,
-    handleUpdateGlobalData,
-    handleDeleteGlobalData,
-    displayName,
+    updateComponentRuntimeProps,
+    deleteComponentRuntimeProps,
     handleUpdateDsl,
     labelPosition,
     labelFull,
@@ -119,6 +111,7 @@ export const DateRangeWidget: FC<DateWidgetProps> = (props) => {
     validateMessage,
     customRule,
     hideValidationMessage,
+    triggerEventHandler,
   } = props
 
   const getValidateMessage = useCallback(
@@ -149,18 +142,7 @@ export const DateRangeWidget: FC<DateWidgetProps> = (props) => {
   )
 
   useEffect(() => {
-    handleUpdateGlobalData(displayName, {
-      startValue,
-      endValue,
-      dateFormat,
-      startPlaceholder,
-      endPlaceholder,
-      showClear,
-      minDate,
-      disabled,
-      maxDate,
-      readOnly,
-      colorScheme,
+    updateComponentRuntimeProps({
       setStartValue: (startValue: string) => {
         handleUpdateDsl({ startValue })
       },
@@ -168,7 +150,7 @@ export const DateRangeWidget: FC<DateWidgetProps> = (props) => {
         handleUpdateDsl({ endValue })
       },
       clearValue: () => {
-        handleUpdateDsl({ startValue: "", endValue: "" })
+        handleUpdateDsl({ startValue: undefined, endValue: undefined })
       },
       validate: () => {
         const startValueChecked = handleValidate(startValue)
@@ -182,37 +164,24 @@ export const DateRangeWidget: FC<DateWidgetProps> = (props) => {
       },
     })
     return () => {
-      handleDeleteGlobalData(displayName)
+      deleteComponentRuntimeProps()
     }
   }, [
-    displayName,
-    startValue,
-    endValue,
-    dateFormat,
-    startPlaceholder,
+    deleteComponentRuntimeProps,
     endPlaceholder,
-    showClear,
-    minDate,
-    disabled,
-    maxDate,
-    readOnly,
-    colorScheme,
-    handleUpdateGlobalData,
+    endValue,
     handleUpdateDsl,
-    handleDeleteGlobalData,
     handleValidate,
+    startValue,
+    updateComponentRuntimeProps,
   ])
 
-  const wrapperRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (wrapperRef.current) {
-      updateComponentHeight(wrapperRef.current?.clientHeight)
-    }
-  }, [required, labelPosition, validateMessage, updateComponentHeight])
+  const handleOnChange = useCallback(() => {
+    triggerEventHandler("change")
+  }, [triggerEventHandler])
 
   return (
-    <div ref={wrapperRef}>
+    <AutoHeightContainer updateComponentHeight={updateComponentHeight}>
       <TooltipWrapper tooltipText={tooltipText} tooltipDisabled={!tooltipText}>
         <div css={applyLabelAndComponentWrapperStyle(labelPosition)}>
           <Label
@@ -230,19 +199,23 @@ export const DateRangeWidget: FC<DateWidgetProps> = (props) => {
           <WrappedDateRange
             {...props}
             getValidateMessage={getValidateMessage}
+            handleOnChange={handleOnChange}
           />
         </div>
       </TooltipWrapper>
-      <div
-        css={applyValidateMessageWrapperStyle(
-          labelWidth,
-          labelPosition,
-          labelHidden || !label,
-        )}
-      >
-        <InvalidMessage validateMessage={validateMessage} />
-      </div>
-    </div>
+      {!hideValidationMessage && (
+        <div
+          css={applyValidateMessageWrapperStyle(
+            labelWidth,
+            labelPosition,
+            labelHidden || !label,
+          )}
+        >
+          <InvalidMessage validateMessage={validateMessage} />
+        </div>
+      )}
+    </AutoHeightContainer>
   )
 }
 DateRangeWidget.displayName = "DateRangeWidget"
+export default DateRangeWidget

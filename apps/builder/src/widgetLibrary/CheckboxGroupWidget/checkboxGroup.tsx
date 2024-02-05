@@ -1,5 +1,6 @@
-import { FC, useCallback, useEffect, useMemo, useRef } from "react"
-import { CheckboxGroup } from "@illa-design/react"
+import { FC, useCallback, useEffect, useMemo } from "react"
+import { CheckboxGroup, CheckboxOption } from "@illa-design/react"
+import { AutoHeightContainer } from "@/widgetLibrary/PublicSector/AutoHeightContainer"
 import { InvalidMessage } from "@/widgetLibrary/PublicSector/InvalidMessage"
 import { handleValidateCheck } from "@/widgetLibrary/PublicSector/InvalidMessage/utils"
 import { Label } from "@/widgetLibrary/PublicSector/Label"
@@ -62,16 +63,12 @@ WrappedCheckbox.displayName = "WrappedCheckbox"
 export const CheckboxWidget: FC<CheckboxGroupWidgetProps> = (props) => {
   const {
     value,
-    disabled,
-    direction,
-    colorScheme,
     optionConfigureMode,
     manualOptions,
     mappedOption,
     handleUpdateDsl,
-    handleUpdateGlobalData,
-    handleDeleteGlobalData,
-    displayName,
+    updateComponentRuntimeProps,
+    deleteComponentRuntimeProps,
     labelPosition,
     labelFull,
     label,
@@ -86,6 +83,7 @@ export const CheckboxWidget: FC<CheckboxGroupWidgetProps> = (props) => {
     hideValidationMessage,
     validateMessage,
     updateComponentHeight,
+    triggerEventHandler,
   } = props
 
   const finalOptions = useMemo(() => {
@@ -120,15 +118,7 @@ export const CheckboxWidget: FC<CheckboxGroupWidgetProps> = (props) => {
   )
 
   useEffect(() => {
-    handleUpdateGlobalData(displayName, {
-      value,
-      disabled,
-      direction,
-      colorScheme,
-      optionConfigureMode,
-      manualOptions,
-      mappedOption,
-      options: finalOptions,
+    updateComponentRuntimeProps({
       setValue: (value: any) => {
         handleUpdateDsl({ value })
       },
@@ -141,34 +131,22 @@ export const CheckboxWidget: FC<CheckboxGroupWidgetProps> = (props) => {
       clearValidation: () => {},
     })
     return () => {
-      handleDeleteGlobalData(displayName)
+      deleteComponentRuntimeProps()
     }
   }, [
-    value,
-    disabled,
-    direction,
-    colorScheme,
-    optionConfigureMode,
-    manualOptions,
-    mappedOption,
-    displayName,
-    finalOptions,
-    handleUpdateGlobalData,
+    deleteComponentRuntimeProps,
     handleUpdateDsl,
-    handleDeleteGlobalData,
     handleValidate,
+    updateComponentRuntimeProps,
+    value,
   ])
 
-  const wrapperRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (wrapperRef.current) {
-      updateComponentHeight(wrapperRef.current?.clientHeight)
-    }
-  }, [validateMessage, finalOptions, labelPosition, updateComponentHeight])
+  const handleOnChange = useCallback(() => {
+    triggerEventHandler("change")
+  }, [triggerEventHandler])
 
   return (
-    <div ref={wrapperRef}>
+    <AutoHeightContainer updateComponentHeight={updateComponentHeight}>
       <TooltipWrapper tooltipText={tooltipText} tooltipDisabled={!tooltipText}>
         <div css={applyCenterLabelAndComponentWrapperStyle(labelPosition)}>
           <Label
@@ -185,22 +163,26 @@ export const CheckboxWidget: FC<CheckboxGroupWidgetProps> = (props) => {
           />
           <WrappedCheckbox
             {...props}
-            options={finalOptions}
+            options={finalOptions as CheckboxOption[]}
             getValidateMessage={getValidateMessage}
+            handleOnChange={handleOnChange}
           />
         </div>
       </TooltipWrapper>
-      <div
-        css={applyValidateMessageWrapperStyle(
-          labelWidth,
-          labelPosition,
-          labelHidden || !label,
-        )}
-      >
-        <InvalidMessage validateMessage={validateMessage} />
-      </div>
-    </div>
+      {!hideValidationMessage && (
+        <div
+          css={applyValidateMessageWrapperStyle(
+            labelWidth,
+            labelPosition,
+            labelHidden || !label,
+          )}
+        >
+          <InvalidMessage validateMessage={validateMessage} />
+        </div>
+      )}
+    </AutoHeightContainer>
   )
 }
 
 CheckboxWidget.displayName = "CheckboxWidget"
+export default CheckboxWidget

@@ -1,66 +1,18 @@
-import { PanelBar } from "@/components/PanelBar"
-import {
-  PanelConfig,
-  PanelFieldConfig,
-  PanelFieldGroupConfig,
-} from "@/page/App/components/InspectPanel/interface"
-import { Setter } from "@/page/App/components/InspectPanel/setter"
-import { ghostEmptyStyle } from "@/page/App/components/InspectPanel/style"
+import { get } from "lodash-es"
+import { PanelFieldConfig } from "@/page/App/components/InspectPanel/interface"
 
-export const renderFieldAndLabel = (
-  config: PanelFieldConfig,
-  displayName: string,
-  isInList: boolean = false,
-  parentAttrName: string,
+export const canRenderField = (
+  item: PanelFieldConfig,
+  widgetProps: Record<string, any>,
 ) => {
-  const { id } = config
-  return (
-    <Setter
-      key={`${id}-${displayName}`}
-      {...config}
-      isInList={isInList}
-      parentAttrName={parentAttrName}
-    />
-  )
-}
-
-export const renderPanelBar = (
-  config: PanelFieldGroupConfig,
-  displayName: string,
-) => {
-  const { id, groupName, children } = config as PanelFieldGroupConfig
-  const key = `${id}-${displayName}`
-
-  return (
-    <PanelBar key={key} title={groupName}>
-      {children && children.length > 0 && (
-        <div css={ghostEmptyStyle}>{fieldFactory(children, displayName)}</div>
-      )}
-    </PanelBar>
-  )
-}
-
-export const renderField = (
-  item: PanelConfig,
-  displayName: string,
-  isInList: boolean = false,
-) => {
-  if ((item as PanelFieldGroupConfig).groupName) {
-    return renderPanelBar(item as PanelFieldGroupConfig, displayName)
-  } else if ((item as PanelFieldConfig).setterType) {
-    return renderFieldAndLabel(
-      item as PanelFieldConfig,
-      displayName,
-      isInList,
-      "",
+  const { bindAttrName, shown } = item
+  if (!bindAttrName || !shown) return true
+  if (Array.isArray(bindAttrName)) {
+    const values = bindAttrName.map((bindAttrNameItem) =>
+      get(widgetProps, bindAttrNameItem),
     )
+    return shown(...values)
   }
-  return null
-}
 
-export function fieldFactory(panelConfig: PanelConfig[], displayName: string) {
-  if (!displayName || !panelConfig || !panelConfig.length) return null
-  return panelConfig.map((item: PanelConfig) =>
-    renderField(item, displayName, false),
-  )
+  return true
 }

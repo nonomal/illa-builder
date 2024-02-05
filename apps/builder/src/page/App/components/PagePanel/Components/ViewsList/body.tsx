@@ -1,145 +1,88 @@
-import { Reorder } from "framer-motion"
-import { clone, cloneDeep, isEqual, set } from "lodash"
-import { FC, useCallback, useEffect, useState } from "react"
+import { ILLA_MIXPANEL_EVENT_TYPE } from "@illa-public/mixpanel-utils"
+import { SectionViewShape } from "@illa-public/public-types"
+import { klona } from "klona/json"
+import { set } from "lodash-es"
+import { FC, useCallback, useContext } from "react"
 import { useDispatch } from "react-redux"
-import { removeNativeStyle } from "@/page/App/components/PanelSetters/TableSetter/ColumnSetter/style"
-import { componentsActions } from "@/redux/currentApp/editor/components/componentsSlice"
-import { SectionViewShape } from "@/redux/currentApp/editor/components/componentsState"
-import { executionActions } from "@/redux/currentApp/executionTree/executionSlice"
+import { componentsActions } from "@/redux/currentApp/components/componentsSlice"
+import { trackInEditor } from "@/utils/mixpanelHelper"
+import { ShortCutContext } from "@/utils/shortcut/shortcutProvider"
 import { BodyProps } from "./interface"
 import { Item } from "./item"
 import { viewsListBodyWrapperStyle } from "./style"
 
 export const ListBody: FC<BodyProps> = (props) => {
-  const { sectionNodeExecutionResult } = props
+  const {
+    sectionViewConfigs,
+    viewSortedKey,
+    parentNodeDisplayName,
+    sectionName,
+  } = props
   const dispatch = useDispatch()
-  const { sectionViewConfigs, currentViewIndex, viewSortedKey, displayName } =
-    sectionNodeExecutionResult
-
-  const [items, setItems] = useState(sectionViewConfigs)
-
-  useEffect(() => {
-    if (!isEqual(sectionViewConfigs, items)) {
-      setItems(sectionViewConfigs)
-    }
-  }, [sectionViewConfigs])
-
-  const handleChangSectionView = useCallback(
-    (index: number) => {
-      if (index > sectionViewConfigs.length) return
-      const config = sectionViewConfigs[index] as SectionViewShape
-      const viewDisplayName = config.viewDisplayName
-      const keyIndex = viewSortedKey.findIndex(
-        (key: string) => key === viewDisplayName,
-      )
-      if (keyIndex === -1 || keyIndex === currentViewIndex) return
-      dispatch(
-        executionActions.updateExecutionByDisplayNameReducer({
-          displayName,
-          value: {
-            currentViewIndex: keyIndex,
-          },
-        }),
-      )
-    },
-    [
-      currentViewIndex,
-      dispatch,
-      displayName,
-      sectionViewConfigs,
-      viewSortedKey,
-    ],
-  )
+  const shortcut = useContext(ShortCutContext)
 
   const handleDeleteSectionView = useCallback(
     (index: number) => {
       if (index > sectionViewConfigs.length) return
+      trackInEditor(ILLA_MIXPANEL_EVENT_TYPE.CLICK, {
+        element: "delete_view",
+        parameter2: sectionName.slice(0, -7),
+      })
       const config = sectionViewConfigs[index] as SectionViewShape
       const viewDisplayName = config.viewDisplayName
-      dispatch(
-        componentsActions.deleteSectionViewReducer({
-          viewDisplayName,
-          parentNodeName: displayName,
-          originPageSortedKey: viewSortedKey,
-        }),
-      )
+      shortcut.showDeleteDialog([config.path], "pageView", {
+        parentNodeName: parentNodeDisplayName,
+        originPageSortedKey: viewSortedKey,
+        viewDisplayName: viewDisplayName,
+      })
     },
-    [dispatch, displayName, sectionViewConfigs, viewSortedKey],
-  )
-
-  const handleUpdateSectionOrder = useCallback(
-    (items: SectionViewShape[]) => {
-      if (isEqual(items, sectionViewConfigs)) return
-      dispatch(
-        componentsActions.updateSectionViewPropsReducer({
-          parentNodeName: displayName,
-          newProps: {
-            sectionViewConfigs: items,
-          },
-        }),
-      )
-    },
-    [dispatch, displayName, sectionViewConfigs],
+    [
+      parentNodeDisplayName,
+      sectionName,
+      sectionViewConfigs,
+      shortcut,
+      viewSortedKey,
+    ],
   )
 
   const handleUpdateItem = useCallback(
     (path: string, value: string) => {
-      const newSectionViewConfigs = cloneDeep(sectionViewConfigs)
+      const newSectionViewConfigs = klona(sectionViewConfigs)
       set(newSectionViewConfigs, path, value)
       dispatch(
         componentsActions.updateSectionViewPropsReducer({
-          parentNodeName: displayName,
+          parentNodeName: parentNodeDisplayName,
           newProps: {
             sectionViewConfigs: newSectionViewConfigs,
           },
         }),
       )
     },
-    [dispatch, displayName, sectionViewConfigs],
+    [dispatch, parentNodeDisplayName, sectionViewConfigs],
   )
 
   return (
     <div css={viewsListBodyWrapperStyle}>
-      <Reorder.Group
-        axis="y"
-        initial={false}
-        values={items}
-        onReorder={setItems}
-        css={removeNativeStyle}
-      >
-        {items.map((config: SectionViewShape, index: number) => {
-          const currentDisplayName = viewSortedKey[currentViewIndex]
-          const otherKeys = items
-            .map((views: SectionViewShape, i: number) => views.key || i)
-            .filter((key: string, i: number) => i != index) as string[]
-          const isSelected = currentDisplayName === config.viewDisplayName
-          return (
-            <Reorder.Item
-              initial={false}
-              css={removeNativeStyle}
-              key={config.id}
-              value={config}
-              onDragEnd={() => {
-                handleUpdateSectionOrder(items)
-              }}
-            >
-              <Item
-                key={config.id}
-                name={config.key}
-                otherKeys={otherKeys}
-                isSelected={isSelected}
-                path={config.path}
-                viewDisplayName={config.viewDisplayName}
-                index={index}
-                attrPath={`${index}`}
-                handleChangSectionView={handleChangSectionView}
-                handleDeleteSectionView={handleDeleteSectionView}
-                handleUpdateItem={handleUpdateItem}
-              />
-            </Reorder.Item>
-          )
-        })}
-      </Reorder.Group>
+      {sectionViewConfigs.map((config: SectionViewShape, index: number) => {
+        const otherPaths = (
+          sectionViewConfigs.map(
+            (views: SectionViewShape, i: number) => views.path || i,
+          ) as string[]
+        ).filter((key: string, i: number) => i != index)
+        return (
+          <Item
+            key={config.id}
+            otherPaths={otherPaths}
+            path={config.path}
+            viewDisplayName={config.viewDisplayName}
+            index={index}
+            attrPath={`${index}`}
+            handleDeleteSectionView={handleDeleteSectionView}
+            handleUpdateItem={handleUpdateItem}
+            parentNodeDisplayName={parentNodeDisplayName}
+          />
+        )
+      })}
     </div>
   )
 }

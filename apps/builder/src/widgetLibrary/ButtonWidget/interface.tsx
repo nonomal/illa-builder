@@ -12,7 +12,6 @@ export interface WrappedButtonProps
     | "loading"
     | "borderColor"
     | "backgroundColor"
-    | "textColor"
   > {
   text?: string
   handleOnClick: () => void
@@ -22,6 +21,4 @@ export interface WrappedButtonProps
 export interface ButtonWidgetProps
   extends WrappedButtonProps,
     BaseWidgetProps,
-    TooltipWrapperProps {
-  handleOnclick: () => void
-}
+    TooltipWrapperProps {}

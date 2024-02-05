@@ -1,14 +1,14 @@
 import { motion } from "framer-motion"
-import { get } from "lodash"
+import { get } from "lodash-es"
 import { FC, useCallback, useMemo, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
-import { CaretRightIcon, ErrorIcon } from "@illa-design/react"
+import { CaretRightIcon, ErrorCircleIcon } from "@illa-design/react"
 import { JsonView } from "@/page/App/components/Debugger/components/JsonView"
 import { configActions } from "@/redux/config/configSlice"
 import {
-  getCanvas,
-  searchDsl,
-} from "@/redux/currentApp/editor/components/componentsSelector"
+  getComponentMap,
+  searchComponentFromMap,
+} from "@/redux/currentApp/components/componentsSelector"
 import { getDisplayNameAndPropertyPath } from "@/utils/executionTreeHelper/utils"
 import { ErrorItemProps } from "./interface"
 import {
@@ -16,6 +16,8 @@ import {
   errorContainerStyle,
   errorExpandStyle,
   errorIconStyle,
+  errorInfoStyle,
+  errorItemContentStyle,
   errorItemStyle,
   errorMessageStyle,
   jsonContentAnimation,
@@ -27,34 +29,33 @@ import {
 export const ErrorItem: FC<ErrorItemProps> = (props) => {
   const { item, pathName } = props
   const dispatch = useDispatch()
-  const root = useSelector(getCanvas)
+  const components = useSelector(getComponentMap)
   const [isExpanded, setIsExpanded] = useState(false)
 
-  const { displayName, attrPath } = useMemo(() => {
-    return getDisplayNameAndPropertyPath(pathName)
-  }, [pathName])
+  const { displayName, attrPath } = getDisplayNameAndPropertyPath(pathName)
 
   const attrValue = useMemo(() => {
-    const node = searchDsl(root, displayName)
+    const node = searchComponentFromMap(components, displayName)
     if (node) {
       return get(node?.props, attrPath)
     }
     return undefined
-  }, [root, displayName, attrPath])
+  }, [components, displayName, attrPath])
 
   const handleComponentSelect = useCallback(() => {
-    const selectedComponent = searchDsl(root, displayName)
-    selectedComponent &&
+    const selectedComponent = searchComponentFromMap(components, displayName)
+    if (selectedComponent) {
       dispatch(
         configActions.updateSelectedComponent([selectedComponent.displayName]),
       )
-  }, [dispatch, root, displayName])
+    }
+  }, [components, displayName, dispatch])
 
   return (
     <div css={errorContainerStyle}>
       <div css={errorItemStyle}>
-        <div>
-          <ErrorIcon size={"16px"} css={errorIconStyle} />
+        <div css={errorItemContentStyle}>
+          <ErrorCircleIcon size={"16px"} css={errorIconStyle} />
           <span
             css={[errorExpandStyle, applyExpandIconStyle(isExpanded)]}
             onClick={() => {
@@ -66,7 +67,7 @@ export const ErrorItem: FC<ErrorItemProps> = (props) => {
           <span css={nameStyle} onClick={handleComponentSelect}>
             [{displayName}]
           </span>
-          <span>The value at {attrPath} is invalid</span>
+          <span css={errorInfoStyle}>The value at {attrPath} is invalid</span>
         </div>
         <div css={sourceStyle} onClick={handleComponentSelect}>
           {pathName}
@@ -83,12 +84,7 @@ export const ErrorItem: FC<ErrorItemProps> = (props) => {
         <div css={errorMessageStyle}>
           {item?.errorName}: {item?.errorMessage}
         </div>
-        <JsonView
-          key={attrPath}
-          name={attrPath}
-          value={attrValue}
-          // value={{"a": "bbbb"}}
-        />
+        <JsonView key={attrPath} name={attrPath} value={attrValue} />
       </motion.div>
     </div>
   )

@@ -1,4 +1,4 @@
-import { ComponentNode } from "@/redux/currentApp/editor/components/componentsState"
+import { ComponentMapNode, PADDING_MODE } from "@illa-public/public-types"
 import { BaseWidgetProps } from "@/widgetLibrary/interface"
 
 export interface viewListItemShaper {
@@ -11,12 +11,18 @@ export interface viewListItemShaper {
 
 export interface ContainerProps extends BaseWidgetProps {
   currentIndex: number
-  componentNode: ComponentNode
-  handleOnClick: () => void
-  handleOnChange: () => void
+  componentNode: ComponentMapNode
   viewList: viewListItemShaper[]
   tooltipText?: string
-  handleUpdateOriginalDSLMultiAttr: (updateSlice: Record<string, any>) => void
   h: number
+  linkWidgetDisplayName?: string[]
   unitH: number
+  columnNumber: number
+  dynamicHeight: "auto" | "fixed" | "limited"
+  dynamicMinHeight?: number
+  dynamicMaxHeight?: number
+  padding?: {
+    size: string
+    mode: PADDING_MODE
+  }
 }

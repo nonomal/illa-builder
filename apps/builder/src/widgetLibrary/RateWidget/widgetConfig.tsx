@@ -1,4 +1,4 @@
-import { ReactComponent as RateWidgetIcon } from "@/assets/widgetCover/rate.svg"
+import RateWidgetIcon from "@/assets/widgetCover/rate.svg?react"
 import i18n from "@/i18n/config"
 import { RESIZE_DIRECTION, WidgetConfig } from "@/widgetLibrary/interface"
 
@@ -9,9 +9,10 @@ export const RATE_WIDGET_CONFIG: WidgetConfig = {
   icon: <RateWidgetIcon />,
   keywords: ["Rate", "评分"],
   sessionType: "PRESENTATION",
-  w: 12,
+  w: 6,
   h: 5,
   resizeDirection: RESIZE_DIRECTION.HORIZONTAL,
+  version: 0,
   defaults: {
     value: "{{4}}",
     allowHalf: true,

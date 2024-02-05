@@ -1,28 +1,41 @@
-import { forwardRef, useCallback, useState } from "react"
+import { getIconFromResourceType } from "@illa-public/icon"
+import { ILLA_MIXPANEL_EVENT_TYPE } from "@illa-public/mixpanel-utils"
+import { Agent, GlobalDataActionContent } from "@illa-public/public-types"
+import { isEqual } from "lodash-es"
+import {
+  Suspense,
+  forwardRef,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react"
 import { useTranslation } from "react-i18next"
 import { useDispatch, useSelector } from "react-redux"
 import {
   DropList,
+  DropListItem,
   Dropdown,
   Input,
   LoadingIcon,
   WarningCircleIcon,
   getColor,
-  globalColor,
-  illaPrefix,
   useMessage,
 } from "@illa-design/react"
-import { Api } from "@/api/base"
 import { ActionListItemProps } from "@/page/App/components/Actions/ActionListItem/interface"
-import { getIconFromActionType } from "@/page/App/components/Actions/getIcon"
+import { getAgentIcon } from "@/page/App/components/Actions/getIcon"
 import {
   getCachedAction,
+  getIsILLAGuideMode,
   getSelectedAction,
 } from "@/redux/config/configSelector"
 import { actionActions } from "@/redux/currentApp/action/actionSlice"
-import { getAppInfo } from "@/redux/currentApp/appInfo/appInfoSelector"
+import { componentsActions } from "@/redux/currentApp/components/componentsSlice"
+import { getExecutionResult } from "@/redux/currentApp/executionTree/executionSelector"
+import { fetchUpdateAction } from "@/services/action"
 import { RootState } from "@/store"
 import { DisplayNameGenerator } from "@/utils/generators/generateDisplayName"
+import { trackInEditor } from "@/utils/mixpanelHelper"
 import { isObject, isValidDisplayName } from "@/utils/typeHelper"
 import {
   actionIconContainer,
@@ -30,17 +43,18 @@ import {
   actionItemLeftStyle,
   applyActionItemContainerStyle,
   applyActionItemTitleStyle,
+  runningTimeStyle,
   warningCircleStyle,
 } from "./style"
 
-const Item = DropList.Item
+const Item = DropListItem
 
 export const ActionListItem = forwardRef<HTMLDivElement, ActionListItemProps>(
   (props, ref) => {
     const { action, onItemClick, onCopyItem, onDeleteItem } = props
 
     const { t } = useTranslation()
-    const selectedAction = useSelector(getSelectedAction)
+    const selectedAction = useSelector(getSelectedAction)!!
     const cachedAction = useSelector(getCachedAction)
     const message = useMessage()
 
@@ -53,18 +67,53 @@ export const ActionListItem = forwardRef<HTMLDivElement, ActionListItemProps>(
       return false
     })
 
-    const currentApp = useSelector(getAppInfo)
+    const isGuideMode = useSelector(getIsILLAGuideMode)
+    const executionResult = useSelector(getExecutionResult)
 
-    const isChanged =
-      selectedAction?.actionId === action.actionId &&
-      JSON.stringify(selectedAction) !== JSON.stringify(cachedAction)
+    const startRunningTime: number =
+      executionResult[action.displayName]?.startTime
+
+    const endRunningTime: number = executionResult[action.displayName]?.endTime
+
+    const isRunning: boolean = executionResult[action.displayName]?.isRunning
+
+    const isMocking: boolean =
+      executionResult[action.displayName]?.config?.mockConfig?.enabled
+
+    const [currentRunningTime, setCurrentRunningTime] = useState(0)
+
+    const dealData = useCallback(() => {
+      return window.setInterval(() => {
+        const currentTime = new Date().getTime() - startRunningTime
+        setCurrentRunningTime(currentTime)
+      }, 10)
+    }, [startRunningTime])
+
+    useEffect((): any => {
+      let time = -1
+      if (isRunning) {
+        time = dealData()
+      }
+      return () => {
+        if (time !== -1) {
+          window.clearInterval(time)
+        }
+      }
+    }, [isRunning, dealData])
+
+    const isChanged = useMemo(() => {
+      return (
+        selectedAction?.actionID === action.actionID &&
+        !isEqual(selectedAction, cachedAction)
+      )
+    }, [action.actionID, cachedAction, selectedAction])
 
     const [editName, setEditName] = useState(false)
     const [changing, setChanging] = useState(false)
     const dispatch = useDispatch()
 
     const changeDisplayName = useCallback(
-      (newName: string) => {
+      async (newName: string) => {
         if (newName === action.displayName) {
           setEditName(false)
           return
@@ -91,61 +140,117 @@ export const ActionListItem = forwardRef<HTMLDivElement, ActionListItemProps>(
           ...action,
           displayName: newName,
         }
-        Api.request(
-          {
-            method: "PUT",
-            url: `/apps/${currentApp.appId}/actions/${action.actionId}`,
-            data: newAction,
-          },
-          () => {
-            dispatch(actionActions.updateActionItemReducer(newAction))
-            setEditName(false)
-          },
-          () => {
-            message.error({
-              content: t("change_fail"),
-            })
-            setEditName(false)
-          },
-          () => {
-            message.error({
-              content: t("change_fail"),
-            })
-            setEditName(false)
-          },
-          (l) => {
-            setChanging(l)
-          },
-        )
+
+        if (action.actionType === "globalData") {
+          DisplayNameGenerator.addDisplayNames([newName])
+          DisplayNameGenerator.removeDisplayName(action.displayName)
+          dispatch(
+            componentsActions.setGlobalStateReducer({
+              key: newName,
+              value: (action.content as GlobalDataActionContent).initialValue,
+              oldKey: action.displayName,
+            }),
+          )
+          setEditName(false)
+          return
+        }
+
+        if (isGuideMode) {
+          dispatch(
+            actionActions.updateActionDisplayNameReducer({
+              newDisplayName: newName,
+              oldDisplayName: action.displayName,
+              actionID: newAction.actionID,
+            }),
+          )
+          setEditName(false)
+          return
+        }
+        setChanging(true)
+        try {
+          await fetchUpdateAction(newAction)
+          dispatch(
+            actionActions.updateActionDisplayNameReducer({
+              newDisplayName: newName,
+              oldDisplayName: action.displayName,
+              actionID: newAction.actionID,
+            }),
+          )
+          setEditName(false)
+        } catch (_e) {
+          message.error({
+            content: t("change_fail"),
+          })
+          setEditName(false)
+        }
+
+        setChanging(false)
       },
-      [action, currentApp.appId, dispatch, t],
+      [action, isGuideMode, dispatch, message, t],
     )
+
+    const calcTimeString = useCallback(
+      (startTime?: number, endTime?: number) => {
+        if (startTime && endTime) {
+          const time = endTime - startTime
+          if (time > 1000) {
+            return `${(time / 1000).toFixed(2)}s`
+          }
+          return `${time}ms`
+        } else {
+          return ""
+        }
+      },
+      [],
+    )
+
+    const calcLoadingTimeString = useCallback((currentRunningTime: number) => {
+      return currentRunningTime > 1000
+        ? `${(currentRunningTime / 1000).toFixed(2)}s`
+        : `${currentRunningTime}ms`
+    }, [])
 
     return (
       <Dropdown
         trigger="contextmenu"
         position="right-start"
         dropList={
-          <DropList width={"184px"}>
+          <DropList w="184px">
             <Item
               key={"rename"}
+              value={"rename"}
               title={t("editor.action.action_list.contextMenu.rename")}
               onClick={() => {
+                trackInEditor(ILLA_MIXPANEL_EVENT_TYPE.RENAME, {
+                  element: "action_rename",
+                  parameter1: action.actionType,
+                  parameter2: "manage",
+                })
                 setEditName(true)
               }}
             />
             <Item
               key={"duplicate"}
+              value={"duplicate"}
               title={t("editor.action.action_list.contextMenu.duplicate")}
               onClick={() => {
+                trackInEditor(ILLA_MIXPANEL_EVENT_TYPE.DUPLICATE, {
+                  element: "action_duplicate",
+                  parameter1: action.actionType,
+                })
                 onCopyItem(action)
               }}
             />
             <Item
               key={"delete"}
+              value={"delete"}
               title={t("editor.action.action_list.contextMenu.delete")}
-              fontColor={globalColor(`--${illaPrefix}-red-03`)}
+              deleted
               onClick={() => {
+                trackInEditor(ILLA_MIXPANEL_EVENT_TYPE.DELETE, {
+                  element: "action_delete",
+                  parameter1: action.actionType,
+                })
                 onDeleteItem(action)
               }}
             />
@@ -167,7 +272,15 @@ export const ActionListItem = forwardRef<HTMLDivElement, ActionListItemProps>(
         >
           <div css={actionItemLeftStyle}>
             <div css={actionIconContainer}>
-              {getIconFromActionType(action.actionType, "16px")}
+              <Suspense>
+                {action.actionType === "aiagent" &&
+                "virtualResource" in action.content
+                  ? getAgentIcon(
+                      action.content.virtualResource as Agent,
+                      "16px",
+                    )
+                  : getIconFromResourceType(action.actionType, "16px")}
+              </Suspense>
               {error && <WarningCircleIcon css={warningCircleStyle} />}
             </div>
             {!editName ? (
@@ -177,7 +290,7 @@ export const ActionListItem = forwardRef<HTMLDivElement, ActionListItemProps>(
             ) : (
               <Input
                 ml="8px"
-                borderColor="techPurple"
+                colorScheme="techPurple"
                 size="small"
                 onPressEnter={(e) => {
                   changeDisplayName(e.currentTarget.value)
@@ -185,24 +298,24 @@ export const ActionListItem = forwardRef<HTMLDivElement, ActionListItemProps>(
                 defaultValue={action.displayName}
                 autoFocus
                 disabled={changing}
-                suffix={{
-                  render: (
-                    <>
-                      {changing && (
-                        <LoadingIcon
-                          c={getColor("grayBlue", "05")}
-                          spin={true}
-                        />
-                      )}
-                    </>
-                  ),
-                }}
+                suffix={
+                  changing && (
+                    <LoadingIcon c={getColor("grayBlue", "05")} spin={true} />
+                  )
+                }
                 onBlur={(event) => {
                   changeDisplayName(event.target.value)
                 }}
               />
             )}
             {isChanged && <div css={actionItemDotStyle} />}
+          </div>
+          <div css={runningTimeStyle}>
+            {isMocking
+              ? t("editor.action.panel.option.mock.label")
+              : isRunning
+                ? calcLoadingTimeString(currentRunningTime)
+                : calcTimeString(startRunningTime, endRunningTime)}
           </div>
         </div>
       </Dropdown>

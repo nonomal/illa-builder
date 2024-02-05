@@ -1,34 +1,39 @@
+import { ActionContent, CurrentUserInfo } from "@illa-public/public-types"
+import { ActionItem } from "@illa-public/public-types"
 import { BuilderInfo } from "@/redux/builderInfo/builderInfoState"
-import {
-  ActionContent,
-  ActionItem,
-} from "@/redux/currentApp/action/actionState"
-import { CurrentUser } from "@/redux/currentUser/currentUserState"
+
+export interface CurrentUserInfoInTree {
+  userID: string
+  nickname: string
+  email: string
+  avatar: string
+  language: string
+  createdAt: string
+  updateAt: string
+}
 
 export interface RawTreeShape {
   [key: string]: any
-  builderInfo: BuilderInfoSeedShape
-  currentUserInfo: CurrenUserInfoSeedShape
+  builderInfo: BuilderInfo
+  currentUserInfo: CurrentUserInfoInTree
 }
 
 type ActionSeedShape = ActionItem<ActionContent>[]
 
 export interface WidgetShape {
-  [key: string]: string
+  [key: string]: any
   $type: "WIDGET"
   $widgetType: string
+  $childrenNode: string[]
 }
-interface WidgetSeedShape {
+export interface WidgetSeedShape {
   [key: string]: WidgetShape
 }
-
-type BuilderInfoSeedShape = BuilderInfo
-
-type CurrenUserInfoSeedShape = CurrentUser
 
 export interface RawTreeSeedShape {
   widgets: WidgetSeedShape
   actions: ActionSeedShape
-  builderInfo: BuilderInfoSeedShape
-  currentUserInfo: CurrenUserInfoSeedShape
+  builderInfo: BuilderInfo
+  currentUserInfo: CurrentUserInfo
+  globalData: Record<string, unknown>
 }

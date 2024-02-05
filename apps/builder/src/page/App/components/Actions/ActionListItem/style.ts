@@ -1,5 +1,5 @@
 import { SerializedStyles, css } from "@emotion/react"
-import { globalColor, illaPrefix } from "@illa-design/react"
+import { getColor, globalColor, illaPrefix } from "@illa-design/react"
 
 export const actionIconContainer = css`
   display: flex;
@@ -53,7 +53,7 @@ export function applyActionItemContainerStyle(
 ): SerializedStyles {
   return css`
     background: ${selected
-      ? globalColor(`--${illaPrefix}-techPurple-07`)
+      ? globalColor(`--${illaPrefix}-techPurple-08`)
       : "transparent"};
     width: 100%;
     align-items: center;
@@ -66,7 +66,7 @@ export function applyActionItemContainerStyle(
 
     &:hover {
       background: ${selected
-        ? globalColor(`--${illaPrefix}-techPurple-07`)
+        ? globalColor(`--${illaPrefix}-techPurple-08`)
         : globalColor(`--${illaPrefix}-grayBlue-09`)};
     }
   `
@@ -79,4 +79,10 @@ export const actionItemLeftStyle = css`
   flex-direction: row;
   align-items: center;
   flex-grow: 1;
+`
+
+export const runningTimeStyle = css`
+  font-size: 12px;
+  font-weight: 400;
+  color: ${getColor("grayBlue", "04")};
 `

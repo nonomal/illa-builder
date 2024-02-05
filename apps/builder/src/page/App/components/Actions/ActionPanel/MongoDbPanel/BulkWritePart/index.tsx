@@ -1,84 +1,74 @@
-import { FC } from "react"
-import { Controller } from "react-hook-form"
+import {
+  ActionItem,
+  MongoDbAction,
+  MongoDbActionTypeContent,
+  MongoDbBulkWriteContent,
+} from "@illa-public/public-types"
+import { FC, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import { useDispatch, useSelector } from "react-redux"
-import { CodeEditor } from "@/components/CodeEditor"
+import { CODE_LANG } from "@/components/CodeEditor/CodeMirror/extensions/interface"
 import { MongoDbActionPartProps } from "@/page/App/components/Actions/ActionPanel/MongoDbPanel/interface"
-import {
-  codeEditorLabelStyle,
-  mongoItemCodeEditorStyle,
-  mongoItemStyle,
-} from "@/page/App/components/Actions/ActionPanel/MongoDbPanel/style"
+import { InputEditor } from "@/page/App/components/Actions/InputEditor"
 import { getCachedAction } from "@/redux/config/configSelector"
 import { configActions } from "@/redux/config/configSlice"
-import {
-  AggregateContent,
-  BulkWriteContent,
-} from "@/redux/currentApp/action/mongoDbAction"
 import { VALIDATION_TYPES } from "@/utils/validationFactory"
 
 export const BulkWritePart: FC<MongoDbActionPartProps> = (props) => {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const cachedAction = useSelector(getCachedAction)
+  const cachedAction = useSelector(getCachedAction) as ActionItem<
+    MongoDbAction<MongoDbActionTypeContent>
+  >
+  const typeContent = props.typeContent as MongoDbBulkWriteContent
 
-  const typeContent = props.typeContent as BulkWriteContent
+  const handleValueChange = useCallback(
+    (name: string) => (value: string) => {
+      dispatch(
+        configActions.updateCachedAction({
+          ...cachedAction,
+          content: {
+            ...cachedAction.content,
+            typeContent: {
+              ...typeContent,
+              [name]: value,
+            } as MongoDbBulkWriteContent,
+          },
+        }),
+      )
+    },
+    [cachedAction, dispatch, typeContent],
+  )
 
   return (
     <>
-      <div css={mongoItemStyle}>
-        <span css={codeEditorLabelStyle}>
-          {t("editor.action.panel.mongodb.operations")}
-        </span>
-        <CodeEditor
-          lineNumbers
-          height="88px"
-          css={mongoItemCodeEditorStyle}
-          mode="TEXT_JS"
-          value={typeContent.operations}
-          onChange={(value) => {
-            dispatch(
-              configActions.updateCachedAction({
-                ...cachedAction,
-                content: {
-                  ...cachedAction.content,
-                  typeContent: {
-                    ...typeContent,
-                    operations: value,
-                  } as BulkWriteContent,
-                },
-              }),
-            )
-          }}
-          expectedType={VALIDATION_TYPES.STRING}
-        />
-      </div>
-      <div css={mongoItemStyle}>
-        <span css={codeEditorLabelStyle}>
-          {t("editor.action.panel.mongodb.options")}
-        </span>
-        <CodeEditor
-          lineNumbers
-          css={mongoItemCodeEditorStyle}
-          mode="TEXT_JS"
-          value={typeContent.options}
-          onChange={(value) => {
-            dispatch(
-              configActions.updateCachedAction({
-                ...cachedAction,
-                content: {
-                  ...cachedAction.content,
-                  typeContent: {
-                    ...typeContent,
-                    options: value,
-                  } as BulkWriteContent,
-                },
-              }),
-            )
-          }}
-          expectedType={VALIDATION_TYPES.STRING}
-        />
-      </div>
+      <InputEditor
+        title={t("editor.action.panel.mongodb.operations")}
+        lineNumbers
+        style={{ height: "188px" }}
+        mode={CODE_LANG.JAVASCRIPT}
+        value={typeContent.operations}
+        onChange={handleValueChange("operations")}
+        expectedType={VALIDATION_TYPES.STRING}
+        placeholder={
+          "[\n" +
+          '      { "insertOne": { "document": { "_id": 3, "type": "beef", "size": "medium", "price": 6 } } },\n' +
+          '      { "insertOne": { "document": { "_id": 4, "type": "sausage", "size": "large", "price": 10 } } },\n' +
+          '      { "updateOne": {\n' +
+          '         "filter": { "type": "cheese" },\n' +
+          '         "update": { "$set": { "price": 8 } }\n' +
+          "      } }\n" +
+          "]"
+        }
+      />
+      <InputEditor
+        title={t("editor.action.panel.mongodb.options")}
+        lineNumbers
+        mode={CODE_LANG.JAVASCRIPT}
+        value={typeContent.options}
+        onChange={handleValueChange("options")}
+        expectedType={VALIDATION_TYPES.STRING}
+      />
     </>
   )
 }

@@ -1,5 +1,5 @@
 import { v4 } from "uuid"
-import { ReactComponent as RadioButtonWidgetIcon } from "@/assets/widgetCover/radioButton.svg"
+import RadioButtonWidgetIcon from "@/assets/widgetCover/radioButton.svg?react"
 import i18n from "@/i18n/config"
 import { RESIZE_DIRECTION, WidgetConfig } from "@/widgetLibrary/interface"
 
@@ -7,12 +7,13 @@ export const RADIO_BUTTON_WIDGET_CONFIG: WidgetConfig = {
   type: "RADIO_BUTTON_WIDGET",
   widgetName: i18n.t("widget.radio_button.name"),
   displayName: "radioButton",
-  w: 18,
+  w: 9,
   h: 5,
   icon: <RadioButtonWidgetIcon />,
   keywords: ["Radio Button", "按钮单选"],
-  sessionType: "PRESENTATION",
+  sessionType: "SELECT",
   resizeDirection: RESIZE_DIRECTION.HORIZONTAL,
+  version: 0,
   defaults: {
     optionConfigureMode: "static",
     label: "Label",

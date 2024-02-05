@@ -1,4 +1,4 @@
-import { ReactComponent as ButtonWidgetIcon } from "@/assets/widgetCover/button.svg"
+import ButtonWidgetIcon from "@/assets/widgetCover/button.svg?react"
 import i18n from "@/i18n/config"
 import { WidgetConfig } from "@/widgetLibrary/interface"
 
@@ -9,8 +9,9 @@ export const BUTTON_WIDGET_CONFIG: WidgetConfig = {
   keywords: ["Button", "按钮"],
   icon: <ButtonWidgetIcon />,
   sessionType: "PRESENTATION",
-  w: 12,
+  w: 6,
   h: 5,
+  version: 0,
   defaults: {
     text: i18n.t("widget.button.default_text"),
     variant: "fill",

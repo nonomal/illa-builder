@@ -1,9 +1,10 @@
-import { FC, useCallback, useEffect, useMemo, useRef } from "react"
+import { FC, useCallback, useEffect, useMemo } from "react"
 import { Cascader } from "@illa-design/react"
 import {
   CascaderWidgetProps,
   WrappedCascaderWidgetProps,
 } from "@/widgetLibrary/CascaderWidget/interface"
+import { AutoHeightContainer } from "@/widgetLibrary/PublicSector/AutoHeightContainer"
 import { Label } from "@/widgetLibrary/PublicSector/Label"
 import { TooltipWrapper } from "@/widgetLibrary/PublicSector/TooltipWrapper"
 import { applyLabelAndComponentWrapperStyle } from "@/widgetLibrary/PublicSector/TransformWidgetWrapper/style"
@@ -13,7 +14,7 @@ export const WrappedCascaderWidget: FC<WrappedCascaderWidgetProps> = (
 ) => {
   const {
     options,
-    value,
+    value = [],
     expandTrigger,
     placeholder,
     allowClear,
@@ -26,7 +27,7 @@ export const WrappedCascaderWidget: FC<WrappedCascaderWidgetProps> = (
     readOnly,
   } = props
   const handleChangeValue = useCallback(
-    (value) => {
+    (value: null | (string | string[])[]) => {
       if (!disabled && !readOnly)
         new Promise((resolve) => {
           handleUpdateMultiExecutionResult([
@@ -67,14 +68,13 @@ export const WrappedCascaderWidget: FC<WrappedCascaderWidgetProps> = (
     <Cascader
       options={options}
       value={value}
-      expandTrigger={expandTrigger}
+      trigger={expandTrigger}
       placeholder={placeholder}
       allowClear={allowClear}
       onChange={handleChangeValue}
       onFocus={handleFocus}
       onBlur={handleBlur}
-      disabled={disabled}
-      readonly={readOnly}
+      disabled={disabled || readOnly}
       showSearch
     />
   )
@@ -104,34 +104,18 @@ export const CascaderWidget: FC<CascaderWidgetProps> = (props) => {
     allowClear,
     disabled,
     readOnly,
-    handleOnChange,
-    handleOnFocus,
-    handleOnBlur,
-    handleUpdateGlobalData,
-    handleDeleteGlobalData,
+    updateComponentRuntimeProps,
+    deleteComponentRuntimeProps,
     handleUpdateDsl,
+    triggerEventHandler,
   } = props
 
   const finalOptions = useMemo(() => {
-    return dataSourceMode === "dynamic" ? dataSourceJS : dataSource
+    return dataSourceMode === "dynamic" ? dataSourceJS || [] : dataSource || []
   }, [dataSource, dataSourceJS, dataSourceMode])
 
-  const wrapperRef = useRef<HTMLDivElement>(null)
-
   useEffect(() => {
-    if (wrapperRef.current) {
-      updateComponentHeight(wrapperRef.current?.clientHeight)
-    }
-  }, [labelPosition, updateComponentHeight])
-
-  useEffect(() => {
-    handleUpdateGlobalData?.(displayName, {
-      showClear: allowClear,
-      value,
-      placeholder,
-      disabled,
-      readOnly,
-      options: finalOptions,
+    updateComponentRuntimeProps({
       setValue: (value: any) => {
         handleUpdateDsl({
           value: Array.isArray(value) ? value : [],
@@ -144,23 +128,28 @@ export const CascaderWidget: FC<CascaderWidgetProps> = (props) => {
       },
     })
     return () => {
-      handleDeleteGlobalData(displayName)
+      deleteComponentRuntimeProps()
     }
   }, [
-    displayName,
-    finalOptions,
-    value,
-    placeholder,
-    disabled,
-    readOnly,
-    allowClear,
+    deleteComponentRuntimeProps,
     handleUpdateDsl,
-    handleUpdateGlobalData,
-    handleDeleteGlobalData,
+    updateComponentRuntimeProps,
   ])
 
+  const handleOnChange = useCallback(() => {
+    triggerEventHandler("change")
+  }, [triggerEventHandler])
+
+  const handleOnFocus = useCallback(() => {
+    triggerEventHandler("focus")
+  }, [triggerEventHandler])
+
+  const handleOnBlur = useCallback(() => {
+    triggerEventHandler("blur")
+  }, [triggerEventHandler])
+
   return (
-    <div ref={wrapperRef}>
+    <AutoHeightContainer updateComponentHeight={updateComponentHeight}>
       <TooltipWrapper tooltipText={tooltipText} tooltipDisabled={!tooltipText}>
         <div css={applyLabelAndComponentWrapperStyle(labelPosition)}>
           <Label
@@ -176,7 +165,7 @@ export const CascaderWidget: FC<CascaderWidgetProps> = (props) => {
             hasTooltip={!!tooltipText}
           />
           <WrappedCascaderWidget
-            options={finalOptions}
+            options={Array.isArray(finalOptions) ? finalOptions : []}
             value={value}
             handleUpdateMultiExecutionResult={handleUpdateMultiExecutionResult}
             displayName={displayName}
@@ -191,6 +180,8 @@ export const CascaderWidget: FC<CascaderWidgetProps> = (props) => {
           />
         </div>
       </TooltipWrapper>
-    </div>
+    </AutoHeightContainer>
   )
 }
+
+export default CascaderWidget

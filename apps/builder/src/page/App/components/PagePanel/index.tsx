@@ -1,19 +1,26 @@
 import { FC } from "react"
-import { PanelHeader } from "./Components/PanelHeader/header"
+import { FocusManager } from "@/utils/focusManager"
 import { PageBasic } from "./Modules/Basic"
 import { PageFrame } from "./Modules/Frame"
+import { PageStyle } from "./Modules/Style"
 import { PagePanelWrapperStyle, PageScrollContainerWrapperStyle } from "./style"
 
-export const PagePanel: FC = () => {
+const PagePanel: FC = () => {
   return (
-    <div css={PagePanelWrapperStyle}>
+    <div
+      css={PagePanelWrapperStyle}
+      onClick={() => {
+        FocusManager.switchFocus("page_config")
+      }}
+    >
       <div css={PageScrollContainerWrapperStyle}>
-        <PanelHeader />
         <PageFrame />
         <PageBasic />
+        <PageStyle />
       </div>
     </div>
   )
 }
 
 PagePanel.displayName = "PagePanel"
+export default PagePanel

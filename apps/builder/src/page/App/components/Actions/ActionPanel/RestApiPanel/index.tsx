@@ -1,55 +1,102 @@
-import { FC } from "react"
+import {
+  ActionItem,
+  Params,
+  Resource,
+  RestAPIAction,
+  RestAPIBodyContent,
+  RestAPIBodyType,
+  RestAPIMethod,
+  RestApiAuth,
+  RestApiResource,
+} from "@illa-public/public-types"
+import { FC, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import { useDispatch, useSelector } from "react-redux"
-import { Input, Select } from "@illa-design/react"
+import { Select, SelectValue, Trigger } from "@illa-design/react"
 import { CodeEditor } from "@/components/CodeEditor"
-import { ActionEventHandler } from "@/page/App/components/Actions/ActionPanel/ActionEventHandler"
-import { RecordEditor } from "@/page/App/components/Actions/ActionPanel/RecordEditor"
-import { ResourceChoose } from "@/page/App/components/Actions/ActionPanel/ResourceChoose"
+import { CODE_LANG } from "@/components/CodeEditor/CodeMirror/extensions/interface"
+import { RecordEditor } from "@/components/RecordEditor"
 import { BodyEditor } from "@/page/App/components/Actions/ActionPanel/RestApiPanel/BodyEditor"
+import {
+  actionItemContainer,
+  restapiItemInputStyle,
+  restapiItemLabelStyle,
+  restapiItemStyle,
+  urlStyle,
+} from "@/page/App/components/Actions/ActionPanel/RestApiPanel/style"
 import { TransformerComponent } from "@/page/App/components/Actions/ActionPanel/TransformerComponent"
 import {
   getCachedAction,
   getSelectedAction,
 } from "@/redux/config/configSelector"
 import { configActions } from "@/redux/config/configSlice"
-import {
-  BodyContent,
-  RestApiAction,
-} from "@/redux/currentApp/action/restapiAction"
-import { Resource } from "@/redux/resource/resourceState"
-import {
-  Params,
-  RestApiAuth,
-  RestApiResource,
-} from "@/redux/resource/restapiResource"
 import { RootState } from "@/store"
 import { VALIDATION_TYPES } from "@/utils/validationFactory"
-import {
-  restapiItemInputStyle,
-  restapiItemLabelStyle,
-  restapiItemStyle,
-  restapiPanelContainerStyle,
-  topDivider,
-} from "./style"
 
-export const RestApiPanel: FC = () => {
+const resetAPIMethodSelectOptions: RestAPIMethod[] = [
+  "GET",
+  "POST",
+  "PUT",
+  "HEAD",
+  "PATCH",
+  "DELETE",
+  "OPTIONS",
+]
+
+const RestApiPanel: FC = () => {
   const { t } = useTranslation()
-
-  const cachedAction = useSelector(getCachedAction)!!
-  const selectedAction = useSelector(getSelectedAction)!!
-
-  const content = cachedAction.content as RestApiAction<BodyContent>
+  const cachedAction = useSelector(getCachedAction) as ActionItem<
+    RestAPIAction<RestAPIBodyContent>
+  >
+  const selectedAction = useSelector(getSelectedAction) as ActionItem<
+    RestAPIAction<RestAPIBodyContent>
+  >
+  const content = cachedAction.content as RestAPIAction<RestAPIBodyContent>
   const dispatch = useDispatch()
 
   const currentResource = useSelector((state: RootState) => {
-    return state.resource.find((r) => r.resourceId === cachedAction?.resourceId)
+    return state.resource.find((r) => r.resourceID === cachedAction?.resourceID)
   })
 
+  const handleChangeMethod = useCallback(
+    (value?: SelectValue) => {
+      let newBodyType: RestAPIBodyType = "none"
+      let newBody = null
+
+      if (value !== "GET") {
+        if (
+          selectedAction.resourceID === cachedAction.resourceID &&
+          selectedAction.content.method === value
+        ) {
+          newBodyType = selectedAction.content.bodyType
+          newBody = selectedAction.content.body
+        }
+      }
+      dispatch(
+        configActions.updateCachedAction({
+          ...cachedAction,
+          content: {
+            ...content,
+            method: value as RestAPIMethod,
+            bodyType: newBodyType,
+            body: newBody,
+          },
+        }),
+      )
+    },
+    [
+      cachedAction,
+      content,
+      dispatch,
+      selectedAction.content.body,
+      selectedAction.content.bodyType,
+      selectedAction.content.method,
+      selectedAction.resourceID,
+    ],
+  )
+
   return (
-    <div css={restapiPanelContainerStyle}>
-      <ResourceChoose />
-      <div css={topDivider} />
+    <div css={actionItemContainer}>
       <div css={restapiItemStyle}>
         <span css={restapiItemLabelStyle}>
           {t("editor.action.resource.restapi.label.action_type")}
@@ -58,56 +105,34 @@ export const RestApiPanel: FC = () => {
           colorScheme="techPurple"
           ml="16px"
           value={content.method}
-          width="160px"
+          w="160px"
           maxW="160px"
-          options={["GET", "POST", "PUT", "PATCH", "DELETE"]}
-          onChange={(value) => {
-            let newBodyType = "none"
-            let newBody = null
-
-            if (value !== "GET") {
-              if (
-                selectedAction.resourceId === cachedAction.resourceId &&
-                selectedAction.content.method === value
-              ) {
-                newBodyType = selectedAction.content.bodyType
-                newBody = selectedAction.content.body
-              }
-            }
-
-            dispatch(
-              configActions.updateCachedAction({
-                ...cachedAction,
-                content: {
-                  ...content,
-                  method: value,
-                  bodyType: newBodyType,
-                  body: newBody,
-                },
-              }),
-            )
-          }}
+          options={resetAPIMethodSelectOptions}
+          onChange={handleChangeMethod}
         />
-        <Input
-          minW="230px"
-          maxW="500px"
-          borderColor="techPurple"
-          bdRadius="8px 0 0 8px"
-          value={
+        <Trigger
+          position="top-start"
+          content={
             currentResource?.content
               ? (currentResource as Resource<RestApiResource<RestApiAuth>>)
                   .content.baseUrl
               : ""
           }
-          ml="8px"
-          readOnly
-        />
+        >
+          <div css={urlStyle}>
+            {currentResource?.content
+              ? (currentResource as Resource<RestApiResource<RestApiAuth>>)
+                  .content.baseUrl
+              : ""}
+          </div>
+        </Trigger>
         <CodeEditor
-          borderRadius="0 8px 8px 0"
-          css={restapiItemInputStyle}
-          expectedType={VALIDATION_TYPES.STRING}
+          singleLine
+          wrapperCss={restapiItemInputStyle}
+          expectValueType={VALIDATION_TYPES.STRING}
           value={content.url}
-          mode="TEXT_JS"
+          placeholder={t("editor.action.form.placeholder.url")}
+          lang={CODE_LANG.JAVASCRIPT}
           onChange={(value) => {
             dispatch(
               configActions.updateCachedAction({
@@ -121,7 +146,6 @@ export const RestApiPanel: FC = () => {
           }}
         />
       </div>
-
       <RecordEditor
         records={content.urlParams}
         label={t("editor.action.resource.restapi.label.url_parameters")}
@@ -151,9 +175,12 @@ export const RestApiPanel: FC = () => {
             }),
           )
         }}
-        onDelete={(index, record) => {
+        onDelete={(index, _record) => {
           let newList: Params[] = [...content.urlParams]
           newList.splice(index, 1)
+          if (newList.length === 0) {
+            newList = [{ key: "", value: "" }]
+          }
           dispatch(
             configActions.updateCachedAction({
               ...cachedAction,
@@ -209,9 +236,12 @@ export const RestApiPanel: FC = () => {
             }),
           )
         }}
-        onDelete={(index, record) => {
+        onDelete={(index) => {
           let newList: Params[] = [...content.headers]
           newList.splice(index, 1)
+          if (newList.length === 0) {
+            newList = [{ key: "", value: "" }]
+          }
           dispatch(
             configActions.updateCachedAction({
               ...cachedAction,
@@ -267,9 +297,12 @@ export const RestApiPanel: FC = () => {
             }),
           )
         }}
-        onDelete={(index, record) => {
+        onDelete={(index) => {
           let newList: Params[] = [...content.cookies]
           newList.splice(index, 1)
+          if (newList.length === 0) {
+            newList = [{ key: "", value: "" }]
+          }
           dispatch(
             configActions.updateCachedAction({
               ...cachedAction,
@@ -296,11 +329,13 @@ export const RestApiPanel: FC = () => {
           )
         }}
       />
-      {content.method !== "GET" && <BodyEditor actionItem={cachedAction} />}
+      {!["GET", "HEAD"].includes(content.method) && (
+        <BodyEditor actionItem={cachedAction} />
+      )}
       <TransformerComponent />
-      <ActionEventHandler />
     </div>
   )
 }
 
 RestApiPanel.displayName = "RestApiPanel"
+export default RestApiPanel

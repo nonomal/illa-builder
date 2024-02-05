@@ -1,7 +1,7 @@
 export interface ShortcutContextProp {
   showDeleteDialog: (
     displayName: string[],
-    type?: "page" | "widget",
+    type?: "page" | "widget" | "action" | "subpage" | "pageView" | "globalData",
     options?: Record<string, any>,
   ) => void
 }

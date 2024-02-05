@@ -1,7 +1,7 @@
 import { motion } from "framer-motion"
 import { FC, useState } from "react"
 import { CaretRightIcon, isArray, isObject, isString } from "@illa-design/react"
-import { applyJsonValueColorStyle } from "@/page/App/components/DataWorkspace/style"
+import { applyJsonValueColorStyle } from "@/page/App/Module/DataWorkspace/style"
 import {
   applyExpandIconStyle,
   jsonContentAnimation,
@@ -49,7 +49,7 @@ export const JsonView: FC<JsonViewProps> = (props) => {
             <JsonView
               key={name}
               name={name}
-              value={value[name]}
+              value={value[name] as Record<string, unknown>}
               level={level + 1}
             />
           ))}

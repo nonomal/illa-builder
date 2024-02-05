@@ -1,30 +1,21 @@
-import { createMessage } from "@illa-design/react"
-import { BUILDER_CALC_CONTEXT } from "@/page/App/context/globalDataProvider"
-import { ActionType } from "@/redux/currentApp/action/actionState"
+import { hasDynamicStringSnippet } from "@illa-public/dynamic-string"
+import { ActionType } from "@illa-public/public-types"
 import { evaluateDynamicString } from "@/utils/evaluateDynamicString"
-import { isDynamicString } from "@/utils/evaluateDynamicString/utils"
+import { ILLAEditorRuntimePropsCollectorInstance } from "@/utils/executionTreeHelper/runtimePropsCollector"
+import { calculateFileSize } from "@/utils/file"
 
-const message = createMessage()
 const MAX_SIZE = 5 * 1024 * 1024
 
 export const getFileValue = (data: string) => {
   let value = data
-  if (isDynamicString(data)) {
+  if (hasDynamicStringSnippet(data)) {
+    const finalContext =
+      ILLAEditorRuntimePropsCollectorInstance.getGlobalCalcContext()
     try {
-      value = evaluateDynamicString("", data, BUILDER_CALC_CONTEXT)
-    } catch (e) {
-      message.error({
-        content: `maybe run error`,
-      })
-    }
+      value = evaluateDynamicString("", data, finalContext)
+    } catch (ignore) {}
   }
   return value
-}
-
-export const calculateFileSize = (data: string | string[]) => {
-  const bolbArr = Array.isArray(data) ? data : [data]
-  const byteSize = new Blob(bolbArr).size
-  return byteSize
 }
 
 export const isFileOversize = (data: string, type?: ActionType) => {

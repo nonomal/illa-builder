@@ -1,8 +1,7 @@
-import { ComponentNode } from "@/redux/currentApp/editor/components/componentsState"
+import { PADDING_MODE } from "@illa-public/public-types"
 import { BaseWidgetProps } from "@/widgetLibrary/interface"
 
-export interface FormWIdgetProps extends BaseWidgetProps {
-  childrenNode: ComponentNode[]
+export interface FormWidgetProps extends BaseWidgetProps {
   showFooter: boolean
   showHeader: boolean
   headerHeight: number
@@ -14,6 +13,11 @@ export interface FormWIdgetProps extends BaseWidgetProps {
   disabledSubmit: boolean
   validateInputsOnSubmit: boolean
   resetAfterSuccessful: boolean
-  handleOnFormInvalid: () => void
-  handleOnFormSubmit: () => void
+  columnNumber: number
+  dynamicHeight: "auto" | "fixed" | "limited"
+  formData?: Record<string, any>
+  padding?: {
+    size: string
+    mode: PADDING_MODE
+  }
 }

@@ -1,4 +1,4 @@
-import { ReactComponent as TextInputWidgetIcon } from "@/assets/widgetCover/textInput.svg"
+import TextInputWidgetIcon from "@/assets/widgetCover/textInput.svg?react"
 import i18n from "@/i18n/config"
 import { RESIZE_DIRECTION, WidgetConfig } from "@/widgetLibrary/interface"
 
@@ -9,9 +9,10 @@ export const INPUT_WIDGET_CONFIG: WidgetConfig = {
   icon: <TextInputWidgetIcon />,
   keywords: ["Input", "文本输入框"],
   sessionType: "INPUTS",
-  w: 12,
+  w: 6,
   h: 5,
   resizeDirection: RESIZE_DIRECTION.HORIZONTAL,
+  version: 0,
   defaults: {
     value: "",
     label: "Label",
@@ -22,5 +23,8 @@ export const INPUT_WIDGET_CONFIG: WidgetConfig = {
     hidden: false,
     formDataKey: "input",
     placeholder: "input sth",
+    $dynamicAttrPaths: ["labelWidth"],
+    type: "input",
+    showVisibleButton: "{{true}}",
   },
 }

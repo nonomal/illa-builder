@@ -1,71 +1,65 @@
-import { cloneDeep, get, set } from "lodash"
-import { FC, memo, useCallback, useContext, useMemo } from "react"
+import { convertPathToString } from "@illa-public/dynamic-string"
+import { klona } from "klona"
+import { get, isFunction, isNumber, set, toPath } from "lodash-es"
+import { FC, Suspense, memo, useCallback, useMemo } from "react"
 import { useDispatch, useSelector } from "react-redux"
+import { Skeleton } from "@illa-design/react"
+import ErrorBoundary from "@/components/ErrorBoundary"
+import { UNIT_HEIGHT } from "@/page/App/components/DotPanel/constant/canvas"
 import {
-  applyEffectMapToComponentNodes,
-  getNearComponentNodes,
-  getReflowResult,
-} from "@/page/App/components/DotPanel/calc"
+  WIDGET_PADDING,
+  WIDGET_SCALE_SQUARE_BORDER_WIDTH,
+} from "@/page/App/components/ScaleSquare/constant/widget"
+import { LayoutInfo } from "@/redux/currentApp/components/componentsPayload"
 import {
-  BUILDER_CALC_CONTEXT,
-  GLOBAL_DATA_CONTEXT,
-} from "@/page/App/context/globalDataProvider"
-import {
-  getCanvas,
   getContainerListDisplayNameMappedChildrenNodeDisplayName,
-  searchDsl,
-} from "@/redux/currentApp/editor/components/componentsSelector"
-import { componentsActions } from "@/redux/currentApp/editor/components/componentsSlice"
-import { ComponentNode } from "@/redux/currentApp/editor/components/componentsState"
-import { getExecutionResult } from "@/redux/currentApp/executionTree/executionSelector"
+  searchDSLByDisplayName,
+} from "@/redux/currentApp/components/componentsSelector"
+import { componentsActions } from "@/redux/currentApp/components/componentsSlice"
+import {
+  getExecutionResult,
+  getIsDragging,
+} from "@/redux/currentApp/executionTree/executionSelector"
 import { executionActions } from "@/redux/currentApp/executionTree/executionSlice"
 import { RootState } from "@/store"
+import store from "@/store"
 import { evaluateDynamicString } from "@/utils/evaluateDynamicString"
 import { runEventHandler } from "@/utils/eventHandlerHelper"
+import { ILLAEditorRuntimePropsCollectorInstance } from "@/utils/executionTreeHelper/runtimePropsCollector"
 import { isObject } from "@/utils/typeHelper"
 import { TransformWidgetProps } from "@/widgetLibrary/PublicSector/TransformWidgetWrapper/interface"
 import { applyWrapperStylesStyle } from "@/widgetLibrary/PublicSector/TransformWidgetWrapper/style"
-import { EventsInProps } from "@/widgetLibrary/interface"
 import { widgetBuilder } from "@/widgetLibrary/widgetBuilder"
-
-export const getEventScripts = (events: EventsInProps[], eventType: string) => {
-  return events.filter((event) => {
-    return event.eventType === eventType
-  })
-}
+import { getClientWidgetLayoutInfo } from "../../../redux/currentApp/layoutInfo/layoutInfoSelector"
+import { layoutInfoActions } from "../../../redux/currentApp/layoutInfo/layoutInfoSlice"
+import { MIN_HEIGHT } from "./config"
 
 export const TransformWidgetWrapper: FC<TransformWidgetProps> = memo(
   (props: TransformWidgetProps) => {
-    const { componentNode } = props
+    const { columnNumber, displayName, widgetType, parentNodeDisplayName } =
+      props
+
     const displayNameMapProps = useSelector(getExecutionResult)
-    const { displayName, type, w, h, unitW, unitH, childrenNode } =
-      componentNode
+    const layoutInfo = useSelector<RootState, LayoutInfo>((rootState) => {
+      const layoutInfos = getClientWidgetLayoutInfo(rootState)
+      return layoutInfos[displayName].layoutInfo
+    })
+    const originComponentNode = searchDSLByDisplayName(displayName)
 
     const realProps = useMemo(
       () => displayNameMapProps[displayName] ?? {},
       [displayName, displayNameMapProps],
     )
-    const { handleUpdateGlobalData, handleDeleteGlobalData } =
-      useContext(GLOBAL_DATA_CONTEXT)
-    const dispatch = useDispatch()
 
-    const allComponents = useSelector<RootState, ComponentNode[]>(
-      (rootState) => {
-        const rootNode = getCanvas(rootState)
-        const parentNodeDisplayName = componentNode.parentNode
-        const target = searchDsl(rootNode, parentNodeDisplayName)
-        if (target) {
-          return target.childrenNode || []
-        }
-        return []
-      },
-    )
+    const dispatch = useDispatch()
 
     const containerListMapChildName = useSelector(
       getContainerListDisplayNameMappedChildrenNodeDisplayName,
     )
 
-    const listContainerDisabled = useMemo(() => {
+    const isDraggingInGlobal = useSelector(getIsDragging)
+
+    const listContainerDisplayName = useMemo(() => {
       const listWidgetDisplayNames = Object.keys(containerListMapChildName)
       let currentListDisplayName = ""
       for (let i = 0; i < listWidgetDisplayNames.length; i++) {
@@ -78,69 +72,103 @@ export const TransformWidgetWrapper: FC<TransformWidgetProps> = memo(
           break
         }
       }
-      if (!currentListDisplayName) return realProps?.disabled || false
+      return currentListDisplayName
+    }, [containerListMapChildName, displayName])
+
+    const listContainerDisabled = useMemo(() => {
+      const currentListDisplayName = listContainerDisplayName
       const listWidgetProps = displayNameMapProps[currentListDisplayName]
-      if (Object.hasOwn(listWidgetProps, "disabled"))
+      if (
+        isObject(listWidgetProps) &&
+        listWidgetProps.hasOwnProperty("disabled") &&
+        listWidgetProps.disabled != undefined
+      )
         return listWidgetProps.disabled
-      return realProps?.disabled || false
-    }, [
-      containerListMapChildName,
-      displayName,
-      displayNameMapProps,
-      realProps?.disabled,
-    ])
+      return realProps?.disabled
+    }, [displayNameMapProps, listContainerDisplayName, realProps?.disabled])
+
+    const updateComponentRuntimeProps = useCallback(
+      (runtimeProp: unknown) => {
+        ILLAEditorRuntimePropsCollectorInstance.addRuntimeProp(
+          displayName,
+          runtimeProp,
+        )
+      },
+      [displayName],
+    )
+
+    const deleteComponentRuntimeProps = useCallback(() => {
+      ILLAEditorRuntimePropsCollectorInstance.deleteRuntimeProp(displayName)
+    }, [displayName])
+
+    const {
+      dynamicHeight = "fixed",
+      dynamicMinHeight,
+      dynamicMaxHeight,
+    } = realProps
 
     const updateComponentHeight = useCallback(
       (newHeight: number) => {
-        const newH = Math.ceil((newHeight + 6) / componentNode.unitH)
-        if (newH === componentNode.h) return
-        const newItem = {
-          ...componentNode,
-          h: Math.max(newH, componentNode.minH),
+        if (isDraggingInGlobal) return
+        const rootState = store.getState()
+        const widgetLayoutInfos = getClientWidgetLayoutInfo(rootState)
+        const oldH = widgetLayoutInfos[displayName]?.layoutInfo.h ?? 0
+
+        if (dynamicHeight !== "fixed") {
+          if (
+            dynamicMaxHeight &&
+            newHeight >
+              dynamicMaxHeight -
+                (WIDGET_PADDING + WIDGET_SCALE_SQUARE_BORDER_WIDTH) * 2
+          ) {
+            newHeight =
+              dynamicMaxHeight -
+              (WIDGET_PADDING + WIDGET_SCALE_SQUARE_BORDER_WIDTH) * 2
+          }
+
+          if (
+            dynamicMinHeight &&
+            newHeight <=
+              dynamicMinHeight -
+                (WIDGET_PADDING + WIDGET_SCALE_SQUARE_BORDER_WIDTH) * 2
+          ) {
+            newHeight =
+              dynamicMinHeight -
+              (WIDGET_PADDING + WIDGET_SCALE_SQUARE_BORDER_WIDTH) * 2
+          }
         }
-        const cloneDeepAllComponents = cloneDeep(allComponents)
-        const findIndex = cloneDeepAllComponents.findIndex(
-          (node) => node.displayName === newItem.displayName,
+
+        const newH = Math.max(
+          Math.ceil(
+            (newHeight +
+              (WIDGET_PADDING + WIDGET_SCALE_SQUARE_BORDER_WIDTH) * 2) /
+              UNIT_HEIGHT,
+          ),
+          MIN_HEIGHT,
         )
-        cloneDeepAllComponents.splice(findIndex, 1, newItem)
-        if (componentNode.h < newItem.h) {
-          const result = getReflowResult(newItem, cloneDeepAllComponents, false)
-          dispatch(
-            componentsActions.updateComponentReflowReducer([
-              {
-                parentDisplayName: componentNode.parentNode || "root",
-                childNodes: result.finalState,
-              },
-            ]),
-          )
-        }
-        if (componentNode.h > newItem.h) {
-          const effectRows = componentNode.h - newItem.h
-          const effectMap = getNearComponentNodes(
-            componentNode,
-            cloneDeepAllComponents,
-          )
-          effectMap.set(newItem.displayName, newItem)
-          effectMap.forEach((node) => {
-            if (node.displayName !== componentNode.displayName) {
-              node.y -= effectRows
-            }
-          })
-          let finalState = applyEffectMapToComponentNodes(
-            effectMap,
-            allComponents,
-          )
-          dispatch(
-            componentsActions.updateComponentReflowReducer([
-              {
-                parentDisplayName: componentNode.parentNode || "root",
-                childNodes: finalState,
-              },
-            ]),
-          )
-        }
+
+        if (newH === oldH) return
+
+        dispatch(
+          layoutInfoActions.updateWidgetLayoutInfoReducer({
+            displayName,
+            layoutInfo: {
+              h: newH,
+            },
+            parentNode: parentNodeDisplayName,
+            effectRows: newH - oldH,
+          }),
+        )
       },
-      [allComponents, componentNode, dispatch],
+      [
+        dispatch,
+        displayName,
+        dynamicHeight,
+        dynamicMaxHeight,
+        dynamicMinHeight,
+        isDraggingInGlobal,
+        parentNodeDisplayName,
+      ],
     )
 
     const handleUpdateDsl = useCallback(
@@ -165,12 +193,13 @@ export const TransformWidgetWrapper: FC<TransformWidgetProps> = memo(
     )
 
     const handleUpdateOriginalDSLMultiAttr = useCallback(
-      (updateSlice: Record<string, any>) => {
+      (updateSlice: Record<string, any>, notUseUndoRedo?: boolean) => {
         if (!isObject(updateSlice)) return
         dispatch(
           componentsActions.updateComponentPropsReducer({
             displayName: displayName,
             updateSlice,
+            notUseUndoRedo,
           }),
         )
       },
@@ -178,193 +207,160 @@ export const TransformWidgetWrapper: FC<TransformWidgetProps> = memo(
     )
 
     const handleUpdateOriginalDSLOtherMultiAttr = useCallback(
-      (displayName: string, updateSlice: Record<string, any>) => {
+      (
+        displayName: string,
+        updateSlice: Record<string, any>,
+        notUseUndoRedo?: boolean,
+      ) => {
         if (!displayName || !isObject(updateSlice)) return
         dispatch(
           componentsActions.updateComponentPropsReducer({
             displayName,
             updateSlice,
+            notUseUndoRedo,
           }),
         )
       },
       [dispatch],
     )
 
-    const getOnChangeEventScripts = useCallback(() => {
-      const events = get(realProps, "events")
-      if (events) {
-        return getEventScripts(events, "change")
-      }
-      return []
-    }, [realProps])
+    const getRunEvents = useCallback(
+      (
+        eventType: string,
+        path: string,
+        otherCalcContext?: Record<string, any>,
+      ) => {
+        const originEvents = get(originComponentNode.props, path, []) as any[]
+        const dynamicPaths = get(
+          originComponentNode.props,
+          "$dynamicAttrPaths",
+          [],
+        )
 
-    const getOnClickEventScripts = useCallback(() => {
-      const events = get(realProps, "events")
-      if (events) {
-        return getEventScripts(events, "click")
-      }
-      return []
-    }, [realProps])
-
-    const getOnFocusEventScripts = useCallback(() => {
-      const events = get(realProps, "events")
-      if (events) {
-        return getEventScripts(events, "focus")
-      }
-      return []
-    }, [realProps])
-
-    const getOnBlurEventScripts = useCallback(() => {
-      const events = get(realProps, "events")
-      if (events) {
-        return getEventScripts(events, "blur")
-      }
-      return []
-    }, [realProps])
-
-    const getOnClickMenuItemEventScripts = useCallback(
-      (path: string) => {
-        const events = get(realProps, path)
-        if (events) {
-          return getEventScripts(events, "clickMenuItem")
+        const needRunEvents = klona(originEvents)
+          .filter((originEvent) => {
+            return originEvent.eventType === eventType
+          })
+          .map((originEvent) => {
+            return {
+              ...originEvent,
+              originEnable: originEvent.enabled,
+            }
+          })
+        const finalContext =
+          ILLAEditorRuntimePropsCollectorInstance.getCurrentPageCalcContext(
+            otherCalcContext,
+          )
+        return {
+          dynamicPaths,
+          needRunEvents,
+          finalContext,
         }
-        return []
       },
-      [realProps],
+      [originComponentNode?.props],
     )
 
-    const getOnSortingChangeEventScripts = useCallback(() => {
-      const events = get(realProps, "events")
-      if (events) {
-        return getEventScripts(events, "sortingChange")
-      }
-      return []
-    }, [realProps])
+    const triggerEventHandler = useCallback(
+      (
+        eventType: string,
+        path: string = "events",
+        otherCalcContext?: Record<string, any>,
+        formatPath?: (path: string) => string,
+      ) => {
+        const { dynamicPaths, needRunEvents, finalContext } = getRunEvents(
+          eventType,
+          path,
+          otherCalcContext,
+        )
 
-    const getOnPaginationChangeEventScripts = useCallback(() => {
-      const events = get(realProps, "events")
-      if (events) {
-        return getEventScripts(events, "paginationChange")
-      }
-      return []
-    }, [realProps])
+        dynamicPaths?.forEach((path: string) => {
+          const realPath = isFunction(formatPath)
+            ? formatPath(path)
+            : convertPathToString(toPath(path).slice(1))
+          try {
+            const dynamicString = get(needRunEvents, realPath, "")
+            if (dynamicString) {
+              const calcValue = evaluateDynamicString(
+                `events${realPath}`,
+                dynamicString,
+                finalContext,
+              )
+              if (listContainerDisplayName) {
+                set(
+                  needRunEvents,
+                  realPath,
+                  Array.isArray(calcValue) ? calcValue[0] : calcValue,
+                )
+              } else {
+                set(needRunEvents, realPath, calcValue)
+              }
+            }
+          } catch (_ignore) {}
+        })
 
-    const getOnColumnFiltersChangeEventScripts = useCallback(() => {
-      const events = get(realProps, "events")
-      if (events) {
-        return getEventScripts(events, "columnFiltersChange")
-      }
-      return []
-    }, [realProps])
-
-    const handleOnChange = useCallback(() => {
-      getOnChangeEventScripts().forEach((scriptObj) => {
-        runEventHandler(scriptObj, BUILDER_CALC_CONTEXT)
-      })
-    }, [getOnChangeEventScripts])
-
-    const handleOnClick = useCallback(() => {
-      getOnClickEventScripts().forEach((scriptObj) => {
-        runEventHandler(scriptObj, BUILDER_CALC_CONTEXT)
-      })
-    }, [getOnClickEventScripts])
-
-    const handleOnFocus = useCallback(() => {
-      getOnFocusEventScripts().forEach((scriptObj) => {
-        runEventHandler(scriptObj, BUILDER_CALC_CONTEXT)
-      })
-    }, [getOnFocusEventScripts])
-
-    const handleOnBlur = useCallback(() => {
-      getOnBlurEventScripts().forEach((scriptObj) => {
-        runEventHandler(scriptObj, BUILDER_CALC_CONTEXT)
-      })
-    }, [getOnBlurEventScripts])
-
-    const handleOnClickMenuItem = useCallback(
-      (path: string) => {
-        getOnClickMenuItemEventScripts(path).forEach((scriptObj) => {
-          runEventHandler(scriptObj, BUILDER_CALC_CONTEXT)
+        needRunEvents.forEach((scriptObj: any) => {
+          runEventHandler(scriptObj, finalContext)
         })
       },
-      [getOnClickMenuItemEventScripts],
+      [getRunEvents, listContainerDisplayName],
     )
 
-    const handleOnSortingChange = useCallback(() => {
-      getOnSortingChangeEventScripts().forEach((scriptObj) => {
-        runEventHandler(scriptObj, BUILDER_CALC_CONTEXT)
-      })
-    }, [getOnSortingChangeEventScripts])
+    const triggerMappedEventHandler = useCallback(
+      (
+        eventType: string,
+        path: string = "events",
+        index?: number,
+        formatPath?: (path: string) => string,
+        isMapped?: (dynamicString: string, calcValue: unknown) => boolean,
+      ) => {
+        const { dynamicPaths, needRunEvents, finalContext } = getRunEvents(
+          eventType,
+          path,
+        )
+        dynamicPaths?.forEach((path: string) => {
+          const realPath = isFunction(formatPath)
+            ? formatPath(path)
+            : convertPathToString(toPath(path).slice(2))
 
-    const handleOnPaginationChange = useCallback(() => {
-      getOnPaginationChangeEventScripts().forEach((scriptObj) => {
-        runEventHandler(scriptObj, BUILDER_CALC_CONTEXT)
-      })
-    }, [getOnPaginationChangeEventScripts])
+          try {
+            const dynamicString = get(needRunEvents, realPath, "")
 
-    const handleOnColumnFiltersChange = useCallback(() => {
-      getOnColumnFiltersChangeEventScripts().forEach((scriptObj) => {
-        runEventHandler(scriptObj, BUILDER_CALC_CONTEXT)
-      })
-    }, [getOnColumnFiltersChangeEventScripts])
+            if (dynamicString) {
+              const calcValue = evaluateDynamicString(
+                `events${realPath}`,
+                dynamicString,
+                finalContext,
+              )
+              let valueToSet = calcValue
 
-    const handleOnRowSelect = useCallback(() => {
-      const originEvents = get(componentNode.props, "events", [])
-      const dynamicPaths = get(componentNode.props, "$dynamicAttrPaths", [])
-      const needRunEvents = cloneDeep(originEvents)
-      dynamicPaths?.forEach((path: string) => {
-        const realPath = path.split(".").slice(1).join(".")
-        try {
-          const dynamicString = get(needRunEvents, realPath, "")
-          if (dynamicString) {
-            const calcValue = evaluateDynamicString(
-              "",
-              dynamicString,
-              BUILDER_CALC_CONTEXT,
-            )
-            set(needRunEvents, realPath, calcValue)
+              if (listContainerDisplayName) {
+                valueToSet = Array.isArray(calcValue) ? calcValue[0] : calcValue
+              }
+
+              if (Array.isArray(calcValue) && isNumber(index)) {
+                if (
+                  !isFunction(isMapped) ||
+                  isMapped(dynamicString, calcValue)
+                ) {
+                  valueToSet = calcValue[index]
+                }
+              }
+              set(needRunEvents, realPath, valueToSet)
+            }
+          } catch (e) {
+            console.log(e)
           }
-        } catch (e) {
-          console.log(e)
-        }
-      })
-      needRunEvents.forEach((scriptObj: any) => {
-        runEventHandler(scriptObj, BUILDER_CALC_CONTEXT)
-      })
-    }, [componentNode.props])
+        })
+        needRunEvents.forEach((scriptObj: any) => {
+          runEventHandler(scriptObj, finalContext)
+        })
+      },
+      [getRunEvents, listContainerDisplayName],
+    )
 
-    const getOnFormSubmitEventScripts = useCallback(() => {
-      const events = get(realProps, "events")
-      if (events) {
-        return getEventScripts(events, "submit")
-      }
-      return []
-    }, [realProps])
-
-    const handleOnFormSubmit = useCallback(() => {
-      getOnFormSubmitEventScripts().forEach((scriptObj) => {
-        runEventHandler(scriptObj, BUILDER_CALC_CONTEXT)
-      })
-    }, [getOnFormSubmitEventScripts])
-
-    const getOnFormInvalidEventScripts = useCallback(() => {
-      const events = get(realProps, "events")
-      if (events) {
-        return getEventScripts(events, "invalid")
-      }
-      return []
-    }, [realProps])
-
-    const handleOnFormInvalid = useCallback(() => {
-      getOnFormInvalidEventScripts().forEach((scriptObj) => {
-        runEventHandler(scriptObj, BUILDER_CALC_CONTEXT)
-      })
-    }, [getOnFormInvalidEventScripts])
-
-    const widget = widgetBuilder(type)
-    if (!widget) return null
-
-    const Component = widget.widget
+    const widgetConfig = widgetBuilder(widgetType)
+    if (!widgetConfig) return null
+    const Component = widgetConfig.widget
     const {
       hidden,
       borderColor,
@@ -379,49 +375,65 @@ export const TransformWidgetWrapper: FC<TransformWidgetProps> = memo(
       ? borderWidth + "px"
       : borderWidth?.toString()
 
-    return hidden ? null : (
-      <div
-        css={applyWrapperStylesStyle(
-          borderColor,
-          _borderWidth,
-          _radius,
-          backgroundColor,
-          shadow,
-          type,
+    return (
+      <ErrorBoundary>
+        {hidden ? null : (
+          <div
+            css={applyWrapperStylesStyle(
+              borderColor,
+              _borderWidth,
+              _radius,
+              backgroundColor,
+              shadow,
+              widgetType,
+            )}
+            id={displayName}
+          >
+            <Suspense
+              fallback={
+                <Skeleton
+                  animation
+                  text={false}
+                  image={{
+                    shape: "square",
+                    w: "100%",
+                    h: "100%",
+                    mr: "0 !important",
+                  }}
+                  h="100%"
+                  w="100%"
+                />
+              }
+            >
+              <Component
+                {...realProps}
+                h={layoutInfo.h}
+                w={layoutInfo.w}
+                columnNumber={columnNumber}
+                handleUpdateOriginalDSLMultiAttr={
+                  handleUpdateOriginalDSLMultiAttr
+                }
+                handleUpdateOriginalDSLOtherMultiAttr={
+                  handleUpdateOriginalDSLOtherMultiAttr
+                }
+                handleUpdateDsl={handleUpdateDsl}
+                updateComponentHeight={updateComponentHeight}
+                handleUpdateMultiExecutionResult={
+                  handleUpdateMultiExecutionResult
+                }
+                displayName={displayName}
+                childrenNode={originComponentNode.childrenNode}
+                componentNode={originComponentNode}
+                disabled={listContainerDisabled}
+                triggerEventHandler={triggerEventHandler}
+                triggerMappedEventHandler={triggerMappedEventHandler}
+                updateComponentRuntimeProps={updateComponentRuntimeProps}
+                deleteComponentRuntimeProps={deleteComponentRuntimeProps}
+              />
+            </Suspense>
+          </div>
         )}
-      >
-        <Component
-          {...realProps}
-          w={w}
-          h={h}
-          unitW={unitW}
-          unitH={unitH}
-          handleUpdateGlobalData={handleUpdateGlobalData}
-          handleDeleteGlobalData={handleDeleteGlobalData}
-          handleUpdateOriginalDSLMultiAttr={handleUpdateOriginalDSLMultiAttr}
-          handleUpdateOriginalDSLOtherMultiAttr={
-            handleUpdateOriginalDSLOtherMultiAttr
-          }
-          handleOnChange={handleOnChange}
-          handleOnClick={handleOnClick}
-          handleOnClickMenuItem={handleOnClickMenuItem}
-          handleOnSortingChange={handleOnSortingChange}
-          handleOnPaginationChange={handleOnPaginationChange}
-          handleOnColumnFiltersChange={handleOnColumnFiltersChange}
-          handleUpdateDsl={handleUpdateDsl}
-          updateComponentHeight={updateComponentHeight}
-          handleUpdateMultiExecutionResult={handleUpdateMultiExecutionResult}
-          handleOnFormSubmit={handleOnFormSubmit}
-          handleOnFormInvalid={handleOnFormInvalid}
-          displayName={displayName}
-          childrenNode={childrenNode}
-          componentNode={componentNode}
-          handleOnFocus={handleOnFocus}
-          handleOnBlur={handleOnBlur}
-          handleOnRowSelect={handleOnRowSelect}
-          disabled={listContainerDisabled}
-        />
-      </div>
+      </ErrorBoundary>
     )
   },
 )

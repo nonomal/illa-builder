@@ -1,59 +1,44 @@
+import { currentUserReducer, teamReducer } from "@illa-public/user-data"
+import { isCloudVersion } from "@illa-public/utils"
 import {
   ListenerEffectAPI,
   TypedStartListening,
-  combineReducers,
   configureStore,
   createListenerMiddleware,
 } from "@reduxjs/toolkit"
-import { logger } from "redux-logger"
-import { reduxAsync } from "@/middleware/redux/reduxAsync"
+import { guideAsync } from "@/middleware/guideAsync"
+import { reduxAsync } from "@/middleware/reduxAsync"
+import aiAgent from "@/redux/aiAgent/dashboardTeamAIAgentSlice"
 import builderInfoReducer from "@/redux/builderInfo/builderInfoSlice"
 import configReducer from "@/redux/config/configSlice"
-import actionReducer from "@/redux/currentApp/action/actionSlice"
-import appInfoReducer from "@/redux/currentApp/appInfo/appInfoSlice"
-import componentsReducer from "@/redux/currentApp/editor/components/componentsSlice"
-import dottedLineSquareReducer from "@/redux/currentApp/editor/dottedLineSquare/dottedLineSquareSlice"
-import dragShadowReducer from "@/redux/currentApp/editor/dragShadow/dragShadowSlice"
-import executionReducer from "@/redux/currentApp/executionTree/executionSlice"
-import currentUserReducer from "@/redux/currentUser/currentUserSlice"
-import dashboardAppReducer from "@/redux/dashboard/apps/dashboardAppSlice"
-import liveFamilyReducer from "@/redux/liveFamily/liveFamilySlice"
+import currentAppHistoryReducer from "@/redux/currentAppHistory/currentAppHistorySlice"
+import guideReducer from "@/redux/guide/guideSlice"
 import resourceReducer from "@/redux/resource/resourceSlice"
+import { mixpanelReport } from "./middleware/mixpanelReport"
+import { UndoRedo } from "./middleware/undoRedo"
+import { appReducer } from "./redux/currentApp/slice"
 
 const listenerMiddleware = createListenerMiddleware()
 
-const editorReducer = combineReducers({
-  components: componentsReducer,
-  dragShadow: dragShadowReducer,
-  dottedLineSquare: dottedLineSquareReducer,
-})
+const middlewares = [reduxAsync, UndoRedo, guideAsync]
 
-const appReducer = combineReducers({
-  editor: editorReducer,
-  action: actionReducer,
-  appInfo: appInfoReducer,
-  execution: executionReducer,
-})
-
-const dashboardReducer = combineReducers({
-  dashboardApps: dashboardAppReducer,
-})
-
-const middlewares = [reduxAsync]
-
-if (import.meta.env.DEV) {
-  middlewares.push(logger)
+if (isCloudVersion) {
+  middlewares.unshift(mixpanelReport)
 }
+
 const store = configureStore({
   reducer: {
     config: configReducer,
     currentApp: appReducer,
-    dashboard: dashboardReducer,
-    currentUser: currentUserReducer,
-    liveFamily: liveFamilyReducer,
+    currentAppHistory: currentAppHistoryReducer,
     builderInfo: builderInfoReducer,
     resource: resourceReducer,
+    guide: guideReducer,
+    currentUser: currentUserReducer,
+    team: teamReducer,
+    aiAgent: aiAgent,
   },
+  devTools: import.meta.env.ILLA_APP_ENV === "development",
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {

@@ -1,91 +1,61 @@
-import { FC, useEffect, useState } from "react"
-import { Controller, useForm } from "react-hook-form"
+import { RedisAction } from "@illa-public/public-types"
+import { FC, useCallback, useEffect, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
-import { isObject } from "@illa-design/react"
-import { Api } from "@/api/base"
-import { CodeEditor } from "@/components/CodeEditor"
-import { ActionEventHandler } from "@/page/App/components/Actions/ActionPanel/ActionEventHandler"
-import { sqlInputStyle } from "@/page/App/components/Actions/ActionPanel/MysqlLikePanel/style"
-import { redisContainerStyle } from "@/page/App/components/Actions/ActionPanel/RedisPanel/style"
-import { ResourceChoose } from "@/page/App/components/Actions/ActionPanel/ResourceChoose"
+import { CODE_LANG } from "@/components/CodeEditor/CodeMirror/extensions/interface"
+import { actionItemContainer } from "@/page/App/components/Actions/ActionPanel/RedisPanel/style"
 import { TransformerComponent } from "@/page/App/components/Actions/ActionPanel/TransformerComponent"
+import { InputEditor } from "@/page/App/components/Actions/InputEditor"
 import { getCachedAction } from "@/redux/config/configSelector"
 import { configActions } from "@/redux/config/configSlice"
-import {
-  RedisAction,
-  RedisActionInitial,
-} from "@/redux/currentApp/action/redisAction"
-import { ResourcesData } from "@/redux/resource/resourceState"
+import { fetchResourceMeta } from "@/services/resource"
 import { VALIDATION_TYPES } from "@/utils/validationFactory"
 
-const convertResourcesToTables = (data: Record<string, unknown>) => {
-  let res: Record<string, string[]> = {}
-  if (isObject(data)) {
-    for (const dataKey in data) {
-      if (isObject(data[dataKey])) {
-        const resKeys = []
-        const key = data[dataKey]
-        if (isObject(key)) {
-          for (const keys in key) {
-            resKeys.push(keys)
-          }
-          res[dataKey] = resKeys
-        }
-      }
-    }
-  }
-  return res
-}
-
-export const RedisPanel: FC = () => {
+const RedisPanel: FC = () => {
   const action = useSelector(getCachedAction)!!
-
-  const [sqlTable, setSqlTable] = useState<Record<string, string[]>>()
+  const [sqlTable, setSqlTable] = useState<Record<string, unknown>>()
 
   useEffect(() => {
-    Api.request(
-      {
-        url: `resources/${action.resourceId}/meta`,
-        method: "GET",
-      },
-      ({ data }: { data: ResourcesData }) => {
-        const tables = convertResourcesToTables(data?.schema)
-        setSqlTable(tables)
-      },
-      () => {},
-      () => {},
-      () => {},
-    )
-  }, [action.resourceId])
+    if (action.resourceID == undefined) return
+    fetchResourceMeta(action.resourceID).then(({ data }) => {
+      setSqlTable(data?.Schema ?? {})
+    })
+  }, [action.resourceID])
 
   const currentContent = action.content as RedisAction
   const dispatch = useDispatch()
 
+  const handleValueChange = useCallback(
+    (value: string) => {
+      dispatch(
+        configActions.updateCachedAction({
+          ...action,
+          content: {
+            ...currentContent,
+            query: value,
+          },
+        }),
+      )
+    },
+    [action, currentContent, dispatch],
+  )
+
   return (
-    <div css={redisContainerStyle}>
-      <ResourceChoose />
-      <CodeEditor
+    <div css={actionItemContainer}>
+      <InputEditor
+        style={{ maxHeight: "88px" }}
         placeholder="SET runoobkey redis"
-        lineNumbers={true}
-        css={sqlInputStyle}
+        lineNumbers
+        canShowCompleteInfo
         value={currentContent.query}
-        mode="TEXT_JS"
+        mode={CODE_LANG.JAVASCRIPT}
         expectedType={VALIDATION_TYPES.STRING}
-        tables={sqlTable}
-        onChange={(value) => {
-          dispatch(
-            configActions.updateCachedAction({
-              ...action,
-              content: {
-                ...currentContent,
-                query: value,
-              },
-            }),
-          )
-        }}
+        sqlScheme={sqlTable}
+        onChange={handleValueChange}
       />
-      <TransformerComponent />
-      <ActionEventHandler />
+
+      <TransformerComponent fullWidth />
     </div>
   )
 }
+RedisPanel.displayName = "RedisPanel"
+export default RedisPanel

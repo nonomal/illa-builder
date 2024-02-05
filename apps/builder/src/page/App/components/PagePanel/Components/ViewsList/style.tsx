@@ -1,5 +1,5 @@
 import { css } from "@emotion/react"
-import { globalColor, illaPrefix } from "@illa-design/react"
+import { getColor, globalColor, illaPrefix } from "@illa-design/react"
 
 export const viewsListWrapperStyle = css`
   display: flex;
@@ -47,17 +47,6 @@ export const selectedIconAndLabelNameWrapperStyle = css`
   gap: 8px;
 `
 
-export const selectedIconStyle = (isSelected: boolean) => {
-  return css`
-    width: 16px;
-    height: 16px;
-    border: ${isSelected
-      ? `4px solid ${globalColor(`--${illaPrefix}-techPurple-01`)}`
-      : `2px solid ${globalColor(`--${illaPrefix}-grayBlue-08`)}`};
-    border-radius: 50%;
-  `
-}
-
 export const labelNameStyle = css`
   max-width: 147px;
   font-size: 14px;
@@ -68,35 +57,15 @@ export const labelNameStyle = css`
   white-space: nowrap;
 `
 
-export const moveIconStyle = css`
-  cursor: move;
-  color: ${globalColor(`--${illaPrefix}-grayBlue-04`)};
-  width: 16px;
-  height: 16px;
-  visibility: hidden;
-`
-
-export const deleteIconStyle = css`
-  cursor: pointer;
-  color: ${globalColor(`--${illaPrefix}-grayBlue-04`)};
-  width: 16px;
-  height: 16px;
-`
-
 export const itemWrapperStyle = css`
   display: flex;
   width: 100%;
   justify-content: space-between;
   align-items: center;
-  padding: 9px 16px 9px 0;
+  padding: 9px 16px;
   gap: 4px;
   height: 40px;
   cursor: pointer;
-  :hover {
-    .dragIcon {
-      visibility: visible;
-    }
-  }
 `
 
 export const modalWrapperStyle = css`
@@ -136,4 +105,14 @@ export const titleStyle = css`
   max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
+`
+
+export const viewListEmptyBody = css`
+  padding: 8px 16px;
+  height: 40px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${getColor("grayBlue", "04")};
 `

@@ -1,5 +1,6 @@
-import { FC, useCallback, useEffect, useMemo, useRef } from "react"
+import { FC, useCallback, useEffect, useMemo } from "react"
 import { RadioGroup } from "@illa-design/react"
+import { AutoHeightContainer } from "@/widgetLibrary/PublicSector/AutoHeightContainer"
 import { InvalidMessage } from "@/widgetLibrary/PublicSector/InvalidMessage/"
 import { handleValidateCheck } from "@/widgetLibrary/PublicSector/InvalidMessage/utils"
 import { Label } from "@/widgetLibrary/PublicSector/Label"
@@ -18,7 +19,6 @@ export const WrappedRadioButton: FC<WrappedRadioButtonProps> = (props) => {
     disabled,
     direction,
     colorScheme,
-    handleUpdateDsl,
     handleOnChange,
     getValidateMessage,
     handleUpdateMultiExecutionResult,
@@ -48,6 +48,7 @@ export const WrappedRadioButton: FC<WrappedRadioButtonProps> = (props) => {
       w="100%"
       minW="0"
       type="button"
+      forceEqualWidth
       value={value}
       disabled={disabled}
       options={options}
@@ -63,16 +64,12 @@ WrappedRadioButton.displayName = "WrappedRadioButton"
 export const RadioButtonWidget: FC<RadioButtonWidgetProps> = (props) => {
   const {
     value,
-    disabled,
-    direction,
-    colorScheme,
     optionConfigureMode,
     manualOptions,
     mappedOption,
     handleUpdateDsl,
-    displayName,
-    handleUpdateGlobalData,
-    handleDeleteGlobalData,
+    updateComponentRuntimeProps,
+    deleteComponentRuntimeProps,
     labelPosition,
     labelFull,
     label,
@@ -87,6 +84,7 @@ export const RadioButtonWidget: FC<RadioButtonWidgetProps> = (props) => {
     hideValidationMessage,
     validateMessage,
     updateComponentHeight,
+    triggerEventHandler,
   } = props
 
   const finalOptions = useMemo(() => {
@@ -121,15 +119,7 @@ export const RadioButtonWidget: FC<RadioButtonWidgetProps> = (props) => {
   )
 
   useEffect(() => {
-    handleUpdateGlobalData(displayName, {
-      value,
-      disabled,
-      direction,
-      colorScheme,
-      optionConfigureMode,
-      manualOptions,
-      mappedOption,
-      options: finalOptions,
+    updateComponentRuntimeProps({
       setValue: (value: any) => {
         handleUpdateDsl({ value })
       },
@@ -142,34 +132,22 @@ export const RadioButtonWidget: FC<RadioButtonWidgetProps> = (props) => {
       clearValidation: () => {},
     })
     return () => {
-      handleDeleteGlobalData(displayName)
+      deleteComponentRuntimeProps()
     }
   }, [
-    displayName,
-    value,
-    disabled,
-    direction,
-    colorScheme,
-    optionConfigureMode,
-    manualOptions,
-    mappedOption,
-    finalOptions,
-    handleUpdateGlobalData,
+    updateComponentRuntimeProps,
     handleUpdateDsl,
-    handleDeleteGlobalData,
+    deleteComponentRuntimeProps,
     handleValidate,
+    value,
   ])
 
-  const wrapperRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (wrapperRef.current) {
-      updateComponentHeight(wrapperRef.current?.clientHeight)
-    }
-  }, [validateMessage, labelPosition, updateComponentHeight])
+  const handleOnChange = useCallback(() => {
+    triggerEventHandler("change")
+  }, [triggerEventHandler])
 
   return (
-    <div ref={wrapperRef}>
+    <AutoHeightContainer updateComponentHeight={updateComponentHeight}>
       <TooltipWrapper tooltipText={tooltipText} tooltipDisabled={!tooltipText}>
         <div css={applyLabelAndComponentWrapperStyle(labelPosition)}>
           <Label
@@ -188,6 +166,7 @@ export const RadioButtonWidget: FC<RadioButtonWidgetProps> = (props) => {
             {...props}
             options={finalOptions}
             getValidateMessage={getValidateMessage}
+            handleOnChange={handleOnChange}
           />
         </div>
       </TooltipWrapper>
@@ -200,7 +179,8 @@ export const RadioButtonWidget: FC<RadioButtonWidgetProps> = (props) => {
       >
         <InvalidMessage validateMessage={validateMessage} />
       </div>
-    </div>
+    </AutoHeightContainer>
   )
 }
 RadioButtonWidget.displayName = "RadioButtonWidget"
+export default RadioButtonWidget

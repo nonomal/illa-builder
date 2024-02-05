@@ -1,15 +1,16 @@
 import { FC } from "react"
 import { useSelector } from "react-redux"
 import {
-  getCanvas,
-  searchDsl,
-} from "@/redux/currentApp/editor/components/componentsSelector"
+  getComponentMap,
+  searchComponentFromMap,
+} from "@/redux/currentApp/components/componentsSelector"
 import {
   getRootNodeExecutionResult,
   getSectionExecutionResultArray,
 } from "@/redux/currentApp/executionTree/executionSelector"
 import { RootState } from "@/store"
 import { ListBody } from "./body"
+import { EmptyState } from "./emptyState"
 import { ViewListHeader } from "./header"
 import { ViewListProps } from "./interface"
 import { viewsListWrapperStyle } from "./style"
@@ -19,26 +20,43 @@ export const ViewList: FC<ViewListProps> = (props) => {
   const rootNodeProps = useSelector(getRootNodeExecutionResult)
   const { currentPageIndex, pageSortedKey } = rootNodeProps
   const currentPageDisplayName = pageSortedKey[currentPageIndex]
+
   const sectionNodeExecutionResult = useSelector<RootState>((state) => {
-    const canvas = getCanvas(state)
-    const currentPageNode = searchDsl(canvas, currentPageDisplayName)
-    if (!currentPageNode) return null
-    const currentSectionNode = currentPageNode.childrenNode.find(
-      (node) => node.showName === sectionName,
+    const components = getComponentMap(state)
+    const currentPageNode = searchComponentFromMap(
+      components,
+      currentPageDisplayName,
     )
-    if (!currentSectionNode) return null
-    const currentSectionDisplayName = currentSectionNode.displayName
+    if (!currentPageNode) return null
+    const currentSectionNodeDisplayName = currentPageNode.childrenNode.find(
+      (childDisplayName) =>
+        components[childDisplayName].showName === sectionName,
+    )
+    if (!currentSectionNodeDisplayName) return null
     const execution = getSectionExecutionResultArray(state)
-    return execution[currentSectionDisplayName] || null
+    return execution[currentSectionNodeDisplayName] || null
   }) as Record<string, any>
+
   if (!sectionNodeExecutionResult) return null
+
   return (
     <div css={viewsListWrapperStyle}>
       <ViewListHeader
         sectionName={sectionName}
-        sectionNodeExecutionResult={sectionNodeExecutionResult}
+        parentNodeDisplayName={sectionNodeExecutionResult.displayName}
       />
-      <ListBody sectionNodeExecutionResult={sectionNodeExecutionResult} />
+      {Array.isArray(sectionNodeExecutionResult.sectionViewConfigs) &&
+      sectionNodeExecutionResult.sectionViewConfigs.length > 0 ? (
+        <ListBody
+          sectionName={sectionName}
+          parentNodeDisplayName={sectionNodeExecutionResult.displayName}
+          currentViewIndex={sectionNodeExecutionResult.currentViewIndex}
+          viewSortedKey={sectionNodeExecutionResult.viewSortedKey}
+          sectionViewConfigs={sectionNodeExecutionResult.sectionViewConfigs}
+        />
+      ) : (
+        <EmptyState />
+      )}
     </div>
   )
 }

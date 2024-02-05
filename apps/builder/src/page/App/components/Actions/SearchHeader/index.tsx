@@ -1,49 +1,30 @@
 import { css } from "@emotion/react"
+import IconHotSpot from "@illa-public/icon-hot-spot"
 import { AnimatePresence, motion } from "framer-motion"
-import { FC, useState } from "react"
+import { Dispatch, FC, SetStateAction, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Button, Input, SearchIcon } from "@illa-design/react"
 import { SearchHeaderProps } from "./interface"
 import {
+  actionListHeaderContainerStyle,
+  actionTitleStyle,
   searchHeaderStyle,
-  searchHeaderTitleIconStyle,
-  searchHeaderTitleStyle,
-  searchHeaderTitleTextStyle,
   searchInputContainerStyle,
   searchInputIconStyle,
   searchInputStyle,
 } from "./style"
 
-export const SearchHeader: FC<SearchHeaderProps> = (props) => {
-  const { onSearch } = props
+interface SearchInputProps {
+  onSearch: (value: string) => void
+  setInSearchState: Dispatch<SetStateAction<boolean>>
+}
+
+const SearchInput: FC<SearchInputProps> = (props) => {
   const { t } = useTranslation()
-  const [inSearchState, setInSearchState] = useState(false)
+  const { onSearch, setInSearchState } = props
 
-  const searchTitle = (
-    <motion.div
-      className={props.className}
-      css={css(searchHeaderStyle, searchHeaderTitleStyle)}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2 }}
-      exit={{ opacity: 0 }}
-    >
-      <span css={searchHeaderTitleTextStyle}>
-        {t("editor.action.action_list.title")}
-      </span>
-      <SearchIcon
-        size={"12px"}
-        onClick={() => setInSearchState(true)}
-        css={searchHeaderTitleIconStyle}
-      />
-    </motion.div>
-  )
-
-  const searchInput = (
-    <div
-      className={props.className}
-      css={css(searchHeaderStyle, searchInputContainerStyle)}
-    >
+  return (
+    <div css={css(searchHeaderStyle, searchInputContainerStyle)}>
       <motion.div
         initial={{ width: 0, opacity: 0 }}
         animate={{ width: "100%", opacity: 1 }}
@@ -51,10 +32,8 @@ export const SearchHeader: FC<SearchHeaderProps> = (props) => {
         transition={{ duration: 0.2 }}
       >
         <Input
-          borderColor="techPurple"
-          prefix={{
-            render: <SearchIcon size={"12px"} css={searchInputIconStyle} />,
-          }}
+          colorScheme="techPurple"
+          prefix={<SearchIcon size={"12px"} css={searchInputIconStyle} />}
           placeholder={t("editor.action.action_list.placeholder.search")}
           onChange={onSearch}
           onClear={() => onSearch("")}
@@ -83,10 +62,27 @@ export const SearchHeader: FC<SearchHeaderProps> = (props) => {
       </motion.div>
     </div>
   )
+}
 
-  const headerContent = inSearchState ? searchInput : searchTitle
+export const SearchHeader: FC<SearchHeaderProps> = (props) => {
+  const { onSearch } = props
+  const [inSearchState, setInSearchState] = useState(false)
 
-  return <AnimatePresence>{headerContent}</AnimatePresence>
+  const { t } = useTranslation()
+  return (
+    <AnimatePresence>
+      {inSearchState ? (
+        <SearchInput setInSearchState={setInSearchState} onSearch={onSearch} />
+      ) : (
+        <div css={actionListHeaderContainerStyle}>
+          <h3 css={actionTitleStyle}>{t("editor.action.action_list.title")}</h3>
+          <IconHotSpot iconSize={12} onClick={() => setInSearchState(true)}>
+            <SearchIcon />
+          </IconHotSpot>
+        </div>
+      )}
+    </AnimatePresence>
+  )
 }
 
 SearchHeader.displayName = "SearchHeader"

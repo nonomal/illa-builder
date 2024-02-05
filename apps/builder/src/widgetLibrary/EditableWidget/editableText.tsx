@@ -1,7 +1,11 @@
 import { FC, useCallback, useEffect, useRef, useState } from "react"
 import { Input, PenIcon } from "@illa-design/react"
+import { AutoHeightContainer } from "@/widgetLibrary/PublicSector/AutoHeightContainer"
 import { InvalidMessage } from "@/widgetLibrary/PublicSector/InvalidMessage"
-import { handleValidateCheck } from "@/widgetLibrary/PublicSector/InvalidMessage/utils"
+import {
+  getValidateVFromString,
+  handleValidateCheck,
+} from "@/widgetLibrary/PublicSector/InvalidMessage/utils"
 import { Label } from "@/widgetLibrary/PublicSector/Label"
 import { TooltipWrapper } from "@/widgetLibrary/PublicSector/TooltipWrapper"
 import {
@@ -34,29 +38,37 @@ export const WrappedEditableText: FC<WrappedEditableTextProps> = (props) => {
   const inputRef = useRef<HTMLInputElement>(null)
   const [focus, setFocus] = useState(false)
 
+  const handleClickOnSpan = () => {
+    setFocus(true)
+    setTimeout(() => {
+      inputRef.current?.focus()
+    }, 100)
+  }
+
   return (
     <div css={containerStyle} className={className}>
       {focus ? (
         <Input
+          w="100%"
           autoFocus
           onChange={(value) => {
             handleUpdateDsl({ value })
           }}
-          showCount={showCharacterCount}
+          showWordLimit={showCharacterCount}
           onBlur={() => {
             setFocus(false)
           }}
           value={value}
-          addonAfter={{ render: suffixText }}
-          addonBefore={{ render: prefixText }}
-          suffix={{ render: suffixIcon }}
-          prefix={{ render: prefixIcon }}
-          ref={inputRef}
+          addAfter={suffixText}
+          addBefore={prefixText}
+          suffix={suffixIcon}
+          prefix={prefixIcon}
+          inputRef={inputRef}
           readOnly={readOnly}
           allowClear={allowClear}
           placeholder={placeholder}
           disabled={disabled}
-          borderColor={colorScheme}
+          colorScheme={colorScheme}
           maxLength={maxLength}
           minLength={minLength}
           onClear={() => handleUpdateDsl({ value: "" })}
@@ -64,9 +76,7 @@ export const WrappedEditableText: FC<WrappedEditableTextProps> = (props) => {
       ) : (
         <span
           css={applyTextCss(!!(value && value?.length > 0))}
-          onClick={() => {
-            setFocus(true)
-          }}
+          onClick={handleClickOnSpan}
         >
           {value && value?.length > 0 ? value : placeholder}
           <PenIcon />
@@ -80,21 +90,10 @@ WrappedEditableText.displayName = "WrappedEditableText"
 export const EditableTextWidget: FC<EditableTextWidgetProps> = (props) => {
   const {
     value,
-    placeholder,
-    disabled,
-    readOnly,
-    prefixIcon,
-    prefixText,
-    suffixIcon,
-    suffixText,
-    showCharacterCount,
-    colorScheme,
     minLength,
     maxLength,
-    allowClear,
-    displayName,
-    handleUpdateGlobalData,
-    handleDeleteGlobalData,
+    updateComponentRuntimeProps,
+    deleteComponentRuntimeProps,
     handleUpdateDsl,
     labelPosition,
     labelFull,
@@ -110,13 +109,15 @@ export const EditableTextWidget: FC<EditableTextWidgetProps> = (props) => {
     regex,
     customRule,
     hideValidationMessage,
+    updateComponentHeight,
     validateMessage,
+    triggerEventHandler,
   } = props
 
   const handleValidate = useCallback(
     (value?: any) => {
       const message = handleValidateCheck({
-        value,
+        value: getValidateVFromString(value),
         required,
         customRule,
         pattern,
@@ -149,20 +150,7 @@ export const EditableTextWidget: FC<EditableTextWidgetProps> = (props) => {
   )
 
   useEffect(() => {
-    handleUpdateGlobalData(displayName, {
-      value,
-      placeholder,
-      disabled,
-      readOnly,
-      prefixIcon,
-      prefixText,
-      suffixIcon,
-      suffixText,
-      showCharacterCount,
-      colorScheme,
-      minLength,
-      maxLength,
-      allowClear,
+    updateComponentRuntimeProps({
       setValue: (value: string) => {
         handleUpdateDsl({ value })
       },
@@ -170,34 +158,34 @@ export const EditableTextWidget: FC<EditableTextWidgetProps> = (props) => {
         handleUpdateDsl({ value: undefined })
       },
       validate: () => {
-        handleValidate(value)
+        return handleValidate(value)
       },
     })
     return () => {
-      handleDeleteGlobalData(displayName)
+      deleteComponentRuntimeProps()
     }
   }, [
-    displayName,
-    value,
-    placeholder,
-    disabled,
-    readOnly,
-    prefixIcon,
-    prefixText,
-    suffixIcon,
-    suffixText,
-    showCharacterCount,
-    colorScheme,
-    minLength,
-    maxLength,
-    allowClear,
-    handleUpdateGlobalData,
+    updateComponentRuntimeProps,
     handleUpdateDsl,
-    handleDeleteGlobalData,
+    deleteComponentRuntimeProps,
     handleValidate,
+    value,
   ])
+
+  const handleOnChange = useCallback(() => {
+    triggerEventHandler("change")
+  }, [triggerEventHandler])
+
+  const handleOnBlur = useCallback(() => {
+    triggerEventHandler("blur")
+  }, [triggerEventHandler])
+
+  const handleOnFocus = useCallback(() => {
+    triggerEventHandler("focus")
+  }, [triggerEventHandler])
+
   return (
-    <>
+    <AutoHeightContainer updateComponentHeight={updateComponentHeight}>
       <TooltipWrapper tooltipText={tooltipText} tooltipDisabled={!tooltipText}>
         <div css={applyLabelAndComponentWrapperStyle(labelPosition)}>
           <Label
@@ -212,19 +200,27 @@ export const EditableTextWidget: FC<EditableTextWidgetProps> = (props) => {
             labelHidden={labelHidden}
             hasTooltip={!!tooltipText}
           />
-          <WrappedEditableText {...props} />
+          <WrappedEditableText
+            {...props}
+            handleOnChange={handleOnChange}
+            handleOnBlur={handleOnBlur}
+            handleOnFocus={handleOnFocus}
+          />
         </div>
       </TooltipWrapper>
-      <div
-        css={applyValidateMessageWrapperStyle(
-          labelWidth,
-          labelPosition,
-          labelHidden || !label,
-        )}
-      >
-        <InvalidMessage validateMessage={validateMessage} />
-      </div>
-    </>
+      {!hideValidationMessage && (
+        <div
+          css={applyValidateMessageWrapperStyle(
+            labelWidth,
+            labelPosition,
+            labelHidden || !label,
+          )}
+        >
+          <InvalidMessage validateMessage={validateMessage} />
+        </div>
+      )}
+    </AutoHeightContainer>
   )
 }
 EditableTextWidget.displayName = "EditableTextWidget"
+export default EditableTextWidget

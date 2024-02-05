@@ -214,6 +214,20 @@ export const RADIO_BUTTON_PANEL_CONFIG: PanelConfig[] = [
     ],
   },
   {
+    id: `${baseWidgetName}-validation`,
+    groupName: i18n.t("editor.inspect.setter_group.validation"),
+    children: [
+      {
+        id: `${baseWidgetName}-validation-form-data-key`,
+        labelName: i18n.t("editor.inspect.setter_label.form_data_key"),
+        labelDesc: i18n.t("editor.inspect.setter_tooltip.form_data_key"),
+        setterType: "INPUT_SETTER",
+        expectedType: VALIDATION_TYPES.STRING,
+        attrName: "formDataKey",
+      },
+    ],
+  },
+  {
     id: `${baseWidgetName}-layout`,
     groupName: i18n.t("editor.inspect.setter_group.layout"),
     children: [
@@ -236,7 +250,7 @@ export const RADIO_BUTTON_PANEL_CONFIG: PanelConfig[] = [
     children: [
       {
         id: `${baseWidgetName}-style-styles`,
-        setterType: "LIST_SETTER",
+        setterType: "STYLE_CONTAINER_SETTER",
         labelName: i18n.t("editor.inspect.setter_label.colors"),
         attrName: "styles",
         useCustomLayout: true,
@@ -246,6 +260,7 @@ export const RADIO_BUTTON_PANEL_CONFIG: PanelConfig[] = [
             labelName: i18n.t("editor.inspect.setter_label.theme_color"),
             attrName: "colorScheme",
             setterType: "COLOR_PICKER_SETTER",
+            useCustomLayout: true,
             defaultValue: "blue",
           },
         ],

@@ -1,41 +1,28 @@
 {
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "tsconfig/react.json",
   "compilerOptions": {
-    "target": "ESNext",
-    "noEmit": true,
-    "useDefineForClassFields": true,
-    "lib": ["DOM", "DOM.Iterable", "ESNext"],
-    "allowJs": false,
-    "skipLibCheck": false,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "strict": true,
-    "forceConsistentCasingInFileNames": true,
-    "module": "ESNext",
-    "moduleResolution": "Node",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "react-jsx",
-    "jsxImportSource": "@emotion/react",
     "baseUrl": "./src",
     "paths": {
-      "@/*": [
-        "./*"
-      ],
-      "@assets/*": [
-        "./src/assets/*"
-      ]
+      "@/*": ["./*"],
+      "@assets/*": ["./src/assets/*"]
     },
     "types": [
       "vite/client",
-      "vite-plugin-svgr/client"
+      "vite-plugin-svgr/client",
+      "mdx",
+      "node",
+      "@types/gtag.js"
     ]
   },
   "include": [
     "./src/**/*.tsx",
-    "./src/**/*.ts"
+    "./src/**/*.ts",
+    "./src/assets/animationForLottie/*.json"
   ],
-  "exclude": [
-    "./src/**/tests/*.e2e.tsx",
-    "./src/**/tests/*.e2e.ts"
+  "references": [
+    {
+      "path": "./tsconfig.node.json"
+    }
   ]
 }

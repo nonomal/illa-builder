@@ -1,5 +1,5 @@
 import { v4 } from "uuid"
-import { ReactComponent as CheckboxWidgetIcon } from "@/assets/widgetCover/checkBox.svg"
+import CheckboxWidgetIcon from "@/assets/widgetCover/checkBox.svg?react"
 import i18n from "@/i18n/config"
 import { RESIZE_DIRECTION, WidgetConfig } from "@/widgetLibrary/interface"
 
@@ -10,8 +10,9 @@ export const CHECKBOX_GROUP_WIDGET_CONFIG: WidgetConfig = {
   icon: <CheckboxWidgetIcon />,
   keywords: ["Checkbox Group", "复选框组"],
   sessionType: "SELECT",
-  w: 20,
+  w: 10,
   h: 5,
+  version: 0,
   resizeDirection: RESIZE_DIRECTION.HORIZONTAL,
   defaults: {
     optionConfigureMode: "static",

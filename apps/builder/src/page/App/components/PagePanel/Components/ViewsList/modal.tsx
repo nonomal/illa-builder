@@ -1,8 +1,8 @@
 import { FC } from "react"
 import { useTranslation } from "react-i18next"
 import { CloseIcon, Input } from "@illa-design/react"
-import { LeftAndRightLayout } from "../../Layout/leftAndRight"
-import { SetterPadding } from "../../Layout/setterPadding"
+import { LeftAndRightLayout } from "@/page/App/components/PagePanel/Layout/leftAndRight"
+import { SetterPadding } from "@/page/App/components/PagePanel/Layout/setterPadding"
 import { PageLabel } from "../Label"
 import { ModalProps } from "./interface"
 import {
@@ -13,7 +13,7 @@ import {
 } from "./style"
 
 export const Modal: FC<ModalProps> = (props) => {
-  const { onCloseModal, name, path, handleUpdateItem, attrPath } = props
+  const { onCloseModal, path, handleUpdateItem } = props
   const { t } = useTranslation()
 
   return (
@@ -25,19 +25,6 @@ export const Modal: FC<ModalProps> = (props) => {
         </div>
       </div>
       <LeftAndRightLayout>
-        <PageLabel labelName={t("editor.page.label_name.key")} size="big" />
-        <SetterPadding>
-          <Input
-            w="200px"
-            value={name}
-            borderColor="techPurple"
-            onChange={(value) => {
-              handleUpdateItem(`${attrPath}.key`, value)
-            }}
-          />
-        </SetterPadding>
-      </LeftAndRightLayout>
-      <LeftAndRightLayout>
         <PageLabel
           labelName={t("editor.page.label_name.view_path")}
           size="big"
@@ -47,10 +34,8 @@ export const Modal: FC<ModalProps> = (props) => {
           <Input
             w="200px"
             value={path}
-            borderColor="techPurple"
-            onChange={(value) => {
-              handleUpdateItem(`${attrPath}.path`, value)
-            }}
+            colorScheme="techPurple"
+            onChange={handleUpdateItem}
           />
         </SetterPadding>
       </LeftAndRightLayout>

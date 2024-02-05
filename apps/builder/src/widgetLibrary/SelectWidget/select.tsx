@@ -1,5 +1,6 @@
-import { FC, useCallback, useEffect, useMemo, useRef } from "react"
+import { FC, useCallback, useEffect, useMemo } from "react"
 import { Select } from "@illa-design/react"
+import { AutoHeightContainer } from "@/widgetLibrary/PublicSector/AutoHeightContainer"
 import { InvalidMessage } from "@/widgetLibrary/PublicSector/InvalidMessage/"
 import { handleValidateCheck } from "@/widgetLibrary/PublicSector/InvalidMessage/utils"
 import { Label } from "@/widgetLibrary/PublicSector/Label"
@@ -21,7 +22,6 @@ export const WrappedSelect: FC<WrappedSelectProps> = (props) => {
     loading,
     readOnly,
     showSearch,
-    inputValue,
     colorScheme,
     handleUpdateMultiExecutionResult,
     handleOnChange,
@@ -59,13 +59,12 @@ export const WrappedSelect: FC<WrappedSelectProps> = (props) => {
     <Select
       allowClear={showClear}
       options={options}
-      value={value}
+      value={typeof value === "object" ? JSON.stringify(value) : value}
       placeholder={placeholder}
       disabled={disabled}
       loading={loading}
       readOnly={readOnly}
       showSearch={showSearch}
-      inputValue={inputValue}
       colorScheme={colorScheme}
       onChange={onChangeSelectValue}
     />
@@ -76,22 +75,13 @@ WrappedSelect.displayName = "WrappedSelect"
 
 export const SelectWidget: FC<SelectWidgetProps> = (props) => {
   const {
-    showClear,
     value,
-    placeholder,
-    disabled,
-    loading,
-    readOnly,
-    showSearch,
-    inputValue,
-    colorScheme,
     optionConfigureMode,
     mappedOption,
     manualOptions,
-    displayName,
     handleUpdateDsl,
-    handleUpdateGlobalData,
-    handleDeleteGlobalData,
+    updateComponentRuntimeProps,
+    deleteComponentRuntimeProps,
     labelPosition,
     labelFull,
     label,
@@ -105,8 +95,8 @@ export const SelectWidget: FC<SelectWidgetProps> = (props) => {
     customRule,
     hideValidationMessage,
     validateMessage,
-    dataSources,
     updateComponentHeight,
+    triggerEventHandler,
   } = props
 
   const finalOptions = useMemo(() => {
@@ -141,21 +131,7 @@ export const SelectWidget: FC<SelectWidgetProps> = (props) => {
   )
 
   useEffect(() => {
-    handleUpdateGlobalData?.(displayName, {
-      showClear,
-      value,
-      placeholder,
-      disabled,
-      loading,
-      readOnly,
-      showSearch,
-      inputValue,
-      colorScheme,
-      optionConfigureMode,
-      mappedOption,
-      manualOptions,
-      options: finalOptions,
-      dataSources,
+    updateComponentRuntimeProps({
       setValue: (value: any) => {
         handleUpdateDsl({ value })
       },
@@ -168,39 +144,30 @@ export const SelectWidget: FC<SelectWidgetProps> = (props) => {
       clearValidation: () => {},
     })
     return () => {
-      handleDeleteGlobalData(displayName)
+      deleteComponentRuntimeProps()
     }
   }, [
-    displayName,
-    finalOptions,
-    showClear,
-    value,
-    placeholder,
-    disabled,
-    loading,
-    readOnly,
-    showSearch,
-    inputValue,
-    colorScheme,
-    optionConfigureMode,
-    mappedOption,
-    manualOptions,
-    handleUpdateGlobalData,
+    updateComponentRuntimeProps,
     handleUpdateDsl,
-    handleDeleteGlobalData,
+    deleteComponentRuntimeProps,
     handleValidate,
-    dataSources,
+    value,
   ])
-  const wrapperRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    if (wrapperRef.current) {
-      updateComponentHeight(wrapperRef.current?.clientHeight)
-    }
-  }, [validateMessage, labelPosition, updateComponentHeight])
+  const handleOnChange = useCallback(() => {
+    triggerEventHandler("change")
+  }, [triggerEventHandler])
+
+  const handleOnFocus = useCallback(() => {
+    triggerEventHandler("focus")
+  }, [triggerEventHandler])
+
+  const handleOnBlur = useCallback(() => {
+    triggerEventHandler("blur")
+  }, [triggerEventHandler])
 
   return (
-    <div ref={wrapperRef}>
+    <AutoHeightContainer updateComponentHeight={updateComponentHeight}>
       <TooltipWrapper tooltipText={tooltipText} tooltipDisabled={!tooltipText}>
         <div css={applyLabelAndComponentWrapperStyle(labelPosition)}>
           <Label
@@ -219,19 +186,26 @@ export const SelectWidget: FC<SelectWidgetProps> = (props) => {
             {...props}
             options={finalOptions}
             getValidateMessage={getValidateMessage}
+            handleOnChange={handleOnChange}
+            handleOnBlur={handleOnBlur}
+            handleOnFocus={handleOnFocus}
           />
         </div>
       </TooltipWrapper>
-      <div
-        css={applyValidateMessageWrapperStyle(
-          labelWidth,
-          labelPosition,
-          labelHidden || !label,
-        )}
-      >
-        <InvalidMessage validateMessage={validateMessage} />
-      </div>
-    </div>
+      {!hideValidationMessage && (
+        <div
+          css={applyValidateMessageWrapperStyle(
+            labelWidth,
+            labelPosition,
+            labelHidden || !label,
+          )}
+        >
+          <InvalidMessage validateMessage={validateMessage} />
+        </div>
+      )}
+    </AutoHeightContainer>
   )
 }
+
 SelectWidget.displayName = "SelectWidget"
+export default SelectWidget

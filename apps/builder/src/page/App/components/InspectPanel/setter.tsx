@@ -1,21 +1,19 @@
-import { get } from "lodash"
+import { convertPathToString } from "@illa-public/dynamic-string"
+import { get, toPath } from "lodash-es"
 import { memo, useContext, useMemo } from "react"
 import { useSelector } from "react-redux"
+import { getSetterByType } from "@/page/App/components/InspectPanel/PanelSetters"
 import { SelectedPanelContext } from "@/page/App/components/InspectPanel/context/selectedContext"
-import { getSetterByType } from "@/page/App/components/PanelSetters"
-import { getComponentNodeBySingleSelected } from "@/redux/currentApp/editor/components/componentsSelector"
-import { VALIDATION_TYPES } from "@/utils/validationFactory"
+import { getComponentNodeBySingleSelected } from "@/redux/currentApp/components/componentsSelector"
+import { getGuideStatus } from "@/redux/guide/guideSelector"
 import { PanelSetterProps } from "./interface"
-import { PanelLabel } from "./label"
-import { applySetterPublicWrapperStyle, applySetterWrapperStyle } from "./style"
+import { applySetterWrapperStyle } from "./style"
 
 export const Setter = memo<PanelSetterProps>((props: PanelSetterProps) => {
   const {
     setterType,
     isSetterSingleRow,
-    isInList,
     labelName,
-    labelDesc,
     useCustomLayout = false,
     shown,
     bindAttrName,
@@ -26,6 +24,7 @@ export const Setter = memo<PanelSetterProps>((props: PanelSetterProps) => {
     icon,
   } = props
   const Comp = getSetterByType(setterType)
+  const isGuideMode = useSelector(getGuideStatus)
   const componentNode = useSelector(getComponentNodeBySingleSelected)
   const {
     widgetProps,
@@ -35,6 +34,7 @@ export const Setter = memo<PanelSetterProps>((props: PanelSetterProps) => {
     handleUpdateDsl,
     handleUpdateMultiAttrDSL,
     handleUpdateOtherMultiAttrDSL,
+    handleUpdateExecutionResult,
   } = useContext(SelectedPanelContext)
 
   const canRenderSetter = useMemo(() => {
@@ -46,47 +46,33 @@ export const Setter = memo<PanelSetterProps>((props: PanelSetterProps) => {
         }
         return get(widgetProps, bindAttrNameItem)
       })
-
       return shown(...bindAttrNameValues)
     }
     return true
   }, [bindAttrName, shown, parentAttrName, widgetProps])
 
-  const renderLabel = useMemo(() => {
-    return !useCustomLayout && labelName ? (
-      <PanelLabel
-        labelName={labelName}
-        labelDesc={labelDesc}
-        isInList={isInList}
-      />
-    ) : null
-  }, [useCustomLayout, labelName, labelDesc, isInList])
-
   const _finalAttrName = useMemo(() => {
-    if (parentAttrName) {
-      return `${parentAttrName}.${attrName}`
+    if (typeof attrName === "string") {
+      if (parentAttrName) {
+        const parentAttrNamePath = toPath(parentAttrName)
+        return convertPathToString([...parentAttrNamePath, attrName])
+      }
+      return attrName
     }
-    return attrName
+    return ""
   }, [parentAttrName, attrName])
 
-  const isSetterSingleRowWrapper = useMemo(() => {
-    return isSetterSingleRow || !labelName
-  }, [isSetterSingleRow, labelName])
+  const isSetterSingleRowWrapper = isSetterSingleRow || !labelName
 
-  const finalValue = useMemo(
-    () => get(widgetProps, _finalAttrName),
-    [widgetProps, _finalAttrName],
-  )
+  const finalValue = useMemo(() => {
+    if (typeof _finalAttrName === "string") {
+      return get(widgetProps, _finalAttrName)
+    }
+  }, [widgetProps, _finalAttrName])
 
-  const renderSetter = useMemo(() => {
-    return Comp ? (
-      <div
-        css={applySetterPublicWrapperStyle(
-          isInList,
-          isSetterSingleRowWrapper,
-          setterType === "LIST_SETTER" || setterType === "EVENT_HANDLER_SETTER",
-        )}
-      >
+  return canRenderSetter ? (
+    <div css={applySetterWrapperStyle(isSetterSingleRow, useCustomLayout)}>
+      {Comp ? (
         <Comp
           {...props}
           attrName={_finalAttrName}
@@ -96,6 +82,7 @@ export const Setter = memo<PanelSetterProps>((props: PanelSetterProps) => {
           handleUpdateDsl={handleUpdateDsl}
           handleUpdateMultiAttrDSL={handleUpdateMultiAttrDSL}
           handleUpdateOtherMultiAttrDSL={handleUpdateOtherMultiAttrDSL}
+          handleUpdateExecutionResult={handleUpdateExecutionResult}
           widgetDisplayName={widgetDisplayName}
           expectedType={expectedType}
           widgetType={widgetType}
@@ -103,43 +90,10 @@ export const Setter = memo<PanelSetterProps>((props: PanelSetterProps) => {
           widgetOrAction={widgetOrAction}
           defaultValue={defaultValue}
           icon={icon}
-          componentNode={componentNode}
+          componentNode={componentNode!}
+          isGuideMode={isGuideMode}
         />
-      </div>
-    ) : null
-  }, [
-    Comp,
-    isInList,
-    isSetterSingleRowWrapper,
-    setterType,
-    props,
-    _finalAttrName,
-    finalValue,
-    widgetProps,
-    handleUpdateDsl,
-    handleUpdateMultiAttrDSL,
-    handleUpdateOtherMultiAttrDSL,
-    widgetDisplayName,
-    expectedType,
-    widgetType,
-    parentAttrName,
-    widgetOrAction,
-    defaultValue,
-    icon,
-    componentNode,
-  ])
-
-  return canRenderSetter ? (
-    <div
-      css={applySetterWrapperStyle(
-        isSetterSingleRow,
-        isInList,
-        isSetterSingleRowWrapper,
-        useCustomLayout,
-      )}
-    >
-      {renderLabel}
-      {renderSetter}
+      ) : null}
     </div>
   ) : null
 })

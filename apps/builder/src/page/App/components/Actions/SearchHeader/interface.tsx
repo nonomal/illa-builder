@@ -1,5 +1,3 @@
-import { HTMLAttributes } from "react"
-
-export interface SearchHeaderProps extends HTMLAttributes<HTMLDivElement> {
+export interface SearchHeaderProps {
   onSearch: (value: string) => void
 }

@@ -7,10 +7,14 @@ interface Injected {
   widgetProps: Record<string, any>
   widgetOrAction: "WIDGET" | "ACTION"
   handleUpdateDsl: (attrPath: string, value: any) => void
-  handleUpdateMultiAttrDSL: (updateSlice: Record<string, any>) => void
+  handleUpdateMultiAttrDSL: (updateSlice: Record<string, unknown>) => void
   handleUpdateOtherMultiAttrDSL: (
     displayName: string,
     updateSlice: Record<string, any>,
+  ) => void
+  handleUpdateExecutionResult?: (
+    displayName: string,
+    updateSlice: Record<string, unknown>,
   ) => void
 }
 
@@ -22,10 +26,14 @@ interface Props {
   widgetParentDisplayName: string | null
   widgetProps: Record<string, any>
   handleUpdateDsl: (attrPath: string, value: any) => void
-  handleUpdateMultiAttrDSL: (updateSlice: Record<string, any>) => void
+  handleUpdateMultiAttrDSL: (updateSlice: Record<string, unknown>) => void
   handleUpdateOtherMultiAttrDSL: (
     displayName: string,
-    updateSlice: Record<string, any>,
+    updateSlice: Record<string, unknown>,
+  ) => void
+  handleUpdateExecutionResult?: (
+    displayName: string,
+    updateSlice: Record<string, unknown>,
   ) => void
   widgetOrAction: "WIDGET" | "ACTION"
   children?: ReactNode
@@ -42,6 +50,7 @@ export const SelectedProvider: FC<Props> = (props) => {
     handleUpdateDsl,
     handleUpdateMultiAttrDSL,
     handleUpdateOtherMultiAttrDSL,
+    handleUpdateExecutionResult,
   } = props
 
   const value = {
@@ -53,6 +62,7 @@ export const SelectedProvider: FC<Props> = (props) => {
     handleUpdateDsl,
     handleUpdateMultiAttrDSL,
     handleUpdateOtherMultiAttrDSL,
+    handleUpdateExecutionResult,
   }
 
   return (
